@@ -36,19 +36,22 @@ class player(pygame.sprite.Sprite):
     # módulo update
     def update(self):
         teclas = pygame.key.get_pressed()
-        if teclas[pygame.K_a]:
-            self.rect.x -= self.velocidad
-        if teclas[pygame.K_d]:
-            self.rect.x += self.velocidad
-        if teclas[pygame.K_w]:
-            self.rect.y -= self.velocidad
-        if teclas[pygame.K_s]:
-            self.rect.y += self.velocidad
-            
-        if self.rect.left < 0: self.rect.left = 0
-        if self.rect.right > ANCHO: self.rect.right = ANCHO
-        if self.rect.top < 0: self.rect.top = 0
-        if self.rect.bottom > ALTO: self.rect.bottom = ALTO
+        dx = 0
+        dy = 0
+        
+        if teclas[pygame.K_a]: dx -= 1
+        if teclas[pygame.K_d]: dx += 1
+        if teclas[pygame.K_w]: dy -= 1
+        if teclas[pygame.K_s]: dy += 1
+        
+        # Normalizar el vector
+        if dx != 0 or dy != 0:
+            magnitud = (dx**2 + dy**2) ** 0.5
+            dx /= magnitud
+            dy /= magnitud
+        
+        self.rect.x += dx * self.velocidad
+        self.rect.y += dy * self.velocidad
 
 pygame.init()
 screen = pygame.display.set_mode((ANCHO, ALTO))
