@@ -14,7 +14,8 @@ HOME = os.path.dirname(__file__)
 ASSESTS_FILE = os.path.join(HOME, "..", "assets")
 GRAPHICS_FILE = os.path.join(ASSESTS_FILE, "graphics")
 FONDO = os.path.join(GRAPHICS_FILE, "environments", "fondo_prueba.jpg")
-PERSONAJE = os.path.join(GRAPHICS_FILE, "characters", "Idle sheet info.png")
+PERSONAJE_IDLE = os.path.join(GRAPHICS_FILE, "characters", "Idle sheet info.png")
+PERSONAJE_MOVE = os.path.join(GRAPHICS_FILE, "characters", "Walk-Sheet.png")
 
 class player(pygame.sprite.Sprite):
     def __init__(self):
@@ -22,23 +23,34 @@ class player(pygame.sprite.Sprite):
         
         try:
             # Cargar la spritesheet
-            sprite_sheet = SpriteSheet(PERSONAJE)
+            sprite_sheet = SpriteSheet(PERSONAJE_IDLE)
+            walk_sheet = SpriteSheet(PERSONAJE_MOVE)
+            self.animations = {
+                'idle_down': sprite_sheet.load_strip((0, 0, 16, 16), 4),
+                'idle_dup': sprite_sheet.load_strip((0, 16, 16, 16), 4),
+                'idle_r': sprite_sheet.load_strip((0, 32, 16, 16), 4),
+                'idle_ddown': sprite_sheet.load_strip((0, 48, 16, 16), 4),
+                'idle_up': sprite_sheet.load_strip((0, 64, 16, 16), 4),
+                'walk_down': walk_sheet.load_strip((0, 0, 16, 16), 4),
+                'walk_dup': walk_sheet.load_strip((0, 16, 16, 16), 4),
+                'walk_r': walk_sheet.load_strip((0, 32, 16, 16), 4),
+                'walk_ddown': walk_sheet.load_strip((0, 48, 16, 16), 4),
+                'walk_up': walk_sheet.load_strip((0, 64, 16, 16), 4),
+            }
             
-            # Opción 1: Cargar un sprite individual (ajusta los valores según tu spritesheet)
-            # frame = sprite_sheet.image_at((0, 0, 32, 32), colorkey=-1)
             
-            # Opción 2: Cargar una fila de sprites para animación
-            # Si tu spritesheet tiene sprites en fila, especifica:
+            # Cargar una fila de sprites para animación
             # (x_inicial, y_inicial, ancho_sprite, alto_sprite)
-            self.frames = sprite_sheet.load_strip((0, 0, 16, 16), 4, colorkey=-1)
-            
+            self.last_action_base = 'down'
+            self.current_animation = 'idle_down'
+            self.facing_right = True
             # Guardar el frame actual
             self.current_frame = 0
             self.animation_speed = 0.1
             self.animation_timer = 0
             
             # Escalar el sprite (sin suavizado para mantener píxeles nítidos)
-            frame = self.frames[self.current_frame]
+            frame = self.animations[self.current_animation][self.current_frame]
             new_width = frame.get_width() * SCALE
             new_height = frame.get_height() * SCALE
             self.image = pygame.transform.scale(frame, (new_width, new_height))
@@ -70,20 +82,71 @@ class player(pygame.sprite.Sprite):
         self.rect.x += dx * self.velocidad
         self.rect.y += dy * self.velocidad
         
-        # Actualizar animación
+        # 1. Determinar animación base y dirección de flip
+        if dx == 0 and dy == 0:
+            # Quieto
+            animation_base = f'idle_{self.last_action_base}'  # la última dirección
+            
+        elif dx != 0 and dy != 0:
+            # DIAGONAL (ambas teclas presionadas)
+            if dy > 0:
+                animation_base = 'walk_dup'
+                self.last_action_base = 'dup'
+            elif dy < 0:
+                animation_base = 'walk_ddown'
+                self.last_action_base = 'ddown'
+            if dx > 0:
+                self.facing_right = True   # Diagonal derecha
+            else:
+                self.facing_right = False  # Diagonal izquierda (flip)
+                
+        elif dy != 0 and dx == 0:
+            # Solo vertical (arriba/abajo)
+            if dy < 0:
+                animation_base = 'walk_up'
+                self.last_action_base = 'up'     # Fila específica para arriba
+            else:
+                animation_base = 'walk_down'
+                self.last_action_base = 'down'   # Fila específica para abajo
+                
+        else:
+            # Solo horizontal (izquierda/derecha)
+            animation_base = 'walk_r'
+            self.last_action_base = 'r'
+            if dx > 0:
+                self.facing_right = True
+            else:
+                self.facing_right = False
+        
+        # Si cambió la animación, reiniciar frame
+        if animation_base != self.current_animation:
+            self.current_animation = animation_base
+            self.current_frame = 0
+        
+        # Actualizar animación (avanzar frames)
         self.animation_timer += self.animation_speed
         if self.animation_timer >= 1:
             self.animation_timer = 0
-            self.current_frame = (self.current_frame + 1) % len(self.frames)
-            
-            # Actualizar la imagen con el frame actual (sin suavizado)
-            frame = self.frames[self.current_frame]
-            new_width = frame.get_width() * SCALE
-            new_height = frame.get_height() * SCALE
-            old_center = self.rect.center
-            self.image = pygame.transform.scale(frame, (new_width, new_height))
-            self.rect = self.image.get_rect()
-            self.rect.center = old_center
+            frames = self.animations[self.current_animation]
+            self.current_frame = (self.current_frame + 1) % len(frames)
+        
+        # Actualizar la imagen cada frame (sin suavizado)
+        frames = self.animations[self.current_animation]
+        frame = frames[self.current_frame]
+        new_width = frame.get_width() * SCALE
+        new_height = frame.get_height() * SCALE
+        old_center = self.rect.center
+        
+        # Escalar
+        scaled_frame = pygame.transform.scale(frame, (new_width, new_height))
+        
+        # Aplicar flip si mira a la izquierda
+        if not self.facing_right:
+            scaled_frame = pygame.transform.flip(scaled_frame, True, False)
+        
+        self.image = scaled_frame
+        self.rect = self.image.get_rect()
+        self.rect.center = old_center
 
 pygame.init()
 screen = pygame.display.set_mode((ANCHO, ALTO))
