@@ -46,7 +46,7 @@ class player(pygame.sprite.Sprite):
             self.facing_right = True
             # Guardar el frame actual
             self.current_frame = 0
-            self.animation_speed = 0.1
+            self.animation_speed = 4/60
             self.animation_timer = 0
             
             # Escalar el sprite (sin suavizado para mantener píxeles nítidos)
@@ -96,18 +96,18 @@ class player(pygame.sprite.Sprite):
                 animation_base = 'walk_ddown'
                 self.last_action_base = 'ddown'
             if dx > 0:
-                self.facing_right = True   # Diagonal derecha
+                self.facing_right = True
             else:
-                self.facing_right = False  # Diagonal izquierda (flip)
+                self.facing_right = False 
                 
         elif dy != 0 and dx == 0:
             # Solo vertical (arriba/abajo)
             if dy < 0:
                 animation_base = 'walk_up'
-                self.last_action_base = 'up'     # Fila específica para arriba
+                self.last_action_base = 'up'
             else:
                 animation_base = 'walk_down'
-                self.last_action_base = 'down'   # Fila específica para abajo
+                self.last_action_base = 'down'
                 
         else:
             # Solo horizontal (izquierda/derecha)
