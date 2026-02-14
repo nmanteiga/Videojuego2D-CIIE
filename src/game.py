@@ -1,13 +1,14 @@
 # TW: el código está en spanglish, sorry I'm a diva
 import pygame
 import sys
-import os 
+import os
+from escena import *
+from menuPausa import MenuPausa
 from sprtesheet import SpriteSheet
 
-
-ANCHO = 800
-ALTO = 600
-FPS = 60
+#ANCHO = 800 # En "escena.py"
+#ALTO = 600 # En "escena.py"
+# FPS = 60 # En "director.py"
 SCALE = 4  
 
 HOME = os.path.dirname(__file__)
@@ -17,10 +18,10 @@ FONDO = os.path.join(GRAPHICS_FILE, "environments", "fondo_prueba.jpg")
 PERSONAJE_IDLE = os.path.join(GRAPHICS_FILE, "characters", "Idle sheet info.png")
 PERSONAJE_MOVE = os.path.join(GRAPHICS_FILE, "characters", "Walk-Sheet.png")
 
-class player(pygame.sprite.Sprite):
+class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        
+
         try:
             # Cargar la spritesheet
             sprite_sheet = SpriteSheet(PERSONAJE_IDLE)
@@ -81,7 +82,7 @@ class player(pygame.sprite.Sprite):
         
         self.rect.x += dx * self.velocidad
         self.rect.y += dy * self.velocidad
-        
+
         # 1. Determinar animación base y dirección de flip
         if dx == 0 and dy == 0:
             # Quieto
@@ -117,7 +118,7 @@ class player(pygame.sprite.Sprite):
                 self.facing_right = True
             else:
                 self.facing_right = False
-        
+
         # Si cambió la animación, reiniciar frame
         if animation_base != self.current_animation:
             self.current_animation = animation_base
@@ -148,33 +149,33 @@ class player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = old_center
 
-pygame.init()
-screen = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Prueba")
-reloj = pygame.time.Clock()
 
-try:
-    fondo = pygame.image.load(FONDO).convert()
-    fondo = pygame.transform.scale(fondo, (ANCHO, ALTO))
-except FileNotFoundError:
-    print(f"error")
+class Juego(Escena):
 
-jugador = player()
-sprites = pygame.sprite.Group()
-sprites.add(jugador)
-ejecutando = True
+    def __init__(self, director):
+        # Llamamos al constructor de la clase padre
+        Escena.__init__(self, director)
 
-while ejecutando:
-    for evento in pygame.event.get():
-        if evento.type == pygame.QUIT:
-            ejecutando = False
+        self.fondo = pygame.image.load(FONDO).convert()
+        self.fondo = pygame.transform.scale(self.fondo, (ANCHO, ALTO))
 
-    sprites.update()
-    screen.blit(fondo, (0, 0)) 
-    sprites.draw(screen)
-    
-    pygame.display.flip()
-    reloj.tick(FPS)
+        self.jugador = Player()
+        self.sprites = pygame.sprite.Group()
+        self.sprites.add(self.jugador)
 
-pygame.quit()
-sys.exit()
+    def eventos(self, lista_eventos):
+        for evento in lista_eventos:
+
+            if evento.type == pygame.QUIT:
+                self.director.salirPrograma()
+
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_ESCAPE:
+                    self.director.apilarEscena(MenuPausa(self.director))
+
+    def update(self, tiempo_pasado):
+        self.sprites.update()
+
+    def dibujar(self, pantalla):
+        pantalla.blit(self.fondo, (0, 0))
+        self.sprites.draw(pantalla)
