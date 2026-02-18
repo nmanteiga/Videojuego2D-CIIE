@@ -1,0 +1,99 @@
+{
+    "activeFile": "fondo_cocina.tmx",
+    "expandedProjectPaths": [
+        ".",
+        "sprites fondo"
+    ],
+    "fileStates": {
+        "/Users/bazuka/Desktop/fondo/Blue Floor Tiles.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "/Users/bazuka/Desktop/fondo/Photo from Ocha Mi.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "/Users/bazuka/Desktop/fondo/RPG Maker Games Pin.tsx": {
+            "scaleInDock": 0.5737,
+            "scaleInEditor": 1
+        },
+        "/Users/bazuka/Desktop/fondo/TopDownHouse_FurnitureState2.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "/Users/bazuka/Desktop/fondo/TopDownHouse_SmallItems.tsx": {
+            "scaleInDock": 2.5327,
+            "scaleInEditor": 1
+        },
+        "/Users/bazuka/Desktop/fondo/counters.tsx": {
+            "scaleInDock": 0.5884,
+            "scaleInEditor": 1
+        },
+        "/Users/bazuka/Desktop/fondo/floor_blue_tiles.tsx": {
+            "scaleInDock": 0.5245,
+            "scaleInEditor": 0.54
+        },
+        "/Users/bazuka/Desktop/fondo/small_furnitre.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "/Users/bazuka/Desktop/fondo/tiles and items.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "/Users/bazuka/Desktop/fondo/untitled.tmx": {
+            "scale": 2.494,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 51.52365677626303,
+                "y": 28.86928628708901
+            }
+        },
+        "/Users/bazuka/Downloads/untitled.tmx": {
+            "scale": 0.09,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 2638.8888888888887,
+                "y": 2111.1111111111113
+            }
+        },
+        "fondo_cocina.tmx": {
+            "scale": 2.3957,
+            "selectedLayer": 5,
+            "viewCenter": {
+                "x": 108.5277789372626,
+                "y": 72.6301289810911
+            }
+        },
+        "sprites fondo/TopDownHouse_FloorsAndWalls.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "sprites fondo/TopDownHouse_FurnitureState1.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "sprites fondo/floor.tsx": {
+            "scaleInDock": 1
+        }
+    },
+    "openFiles": [
+        "fondo_cocina.tmx",
+        "/Users/bazuka/Desktop/fondo/TopDownHouse_SmallItems.tsx"
+    ],
+    "project": "",
+    "recentFiles": [
+        "/Users/bazuka/Desktop/fondo/TopDownHouse_SmallItems.tsx",
+        "fondo_cocina.tmx",
+        "/Users/bazuka/Desktop/fondo/Photo from Ocha Mi.tsx",
+        "/Users/bazuka/Desktop/fondo/RPG Maker Games Pin.tsx",
+        "/Users/bazuka/Desktop/fondo/small_furnitre.tsx",
+        "/Users/bazuka/Desktop/fondo/TopDownHouse_FurnitureState2.tsx",
+        "/Users/bazuka/Desktop/fondo/tiles and items.tsx",
+        "/Users/bazuka/Desktop/fondo/Blue Floor Tiles.tsx",
+        "/Users/bazuka/Desktop/fondo/counters.tsx",
+        "/Users/bazuka/Desktop/fondo/floor_blue_tiles.tsx",
+        "/Users/bazuka/Desktop/fondo/untitled.tmx",
+        "/Users/bazuka/Downloads/untitled.tmx"
+    ]
+}
