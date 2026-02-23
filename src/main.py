@@ -1,7 +1,7 @@
 import pygame
 import director
 from director import *
-from game import Juego # (Sólo mientras no haya menú de inicio)
+from menuInicio import MenuPrincipal
 
 if __name__ == '__main__':
     # Inicializamos la librería de pygame
@@ -11,7 +11,7 @@ if __name__ == '__main__':
     director = Director()
 
     # Creamos la escena inicial
-    escena = Juego(director)
+    escena = MenuPrincipal(director)
 
     # Le decimos al director que apile esta escena
     director.apilarEscena(escena)
