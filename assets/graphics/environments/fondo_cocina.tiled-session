@@ -1,10 +1,23 @@
 {
-    "activeFile": "fondo_cocina.tmx",
+    "activeFile": "sprites cocina/fondo.tmx",
     "expandedProjectPaths": [
         ".",
         "sprites fondo"
     ],
+    "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
+        "/Users/bazuka/Desktop/Cuarto/fondo/Blue Floor Tiles.tsx": {
+            "scaleInDock": 1
+        },
+        "/Users/bazuka/Desktop/Cuarto/fondo/TopDownHouse_FurnitureState2.tsx": {
+            "scaleInDock": 1
+        },
+        "/Users/bazuka/Desktop/Cuarto/fondo/TopDownHouse_SmallItems.tsx": {
+            "scaleInDock": 1
+        },
+        "/Users/bazuka/Desktop/Cuarto/fondo/tiles and items.tsx": {
+            "scaleInDock": 1
+        },
         "/Users/bazuka/Desktop/fondo/Blue Floor Tiles.tsx": {
             "scaleInDock": 1,
             "scaleInEditor": 1
@@ -45,8 +58,8 @@
             "scale": 2.494,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 51.52365677626303,
-                "y": 28.86928628708901
+                "x": 108.46030473135524,
+                "y": 62.34963913392139
             }
         },
         "/Users/bazuka/Downloads/untitled.tmx": {
@@ -58,12 +71,44 @@
             }
         },
         "fondo_cocina.tmx": {
-            "scale": 2.3957,
+            "scale": 1.6849,
             "selectedLayer": 5,
             "viewCenter": {
-                "x": 108.5277789372626,
-                "y": 72.6301289810911
+                "x": 64.98902011988844,
+                "y": 60.24096385542168
             }
+        },
+        "sprites cocina/Blue Floor Tiles.tsx": {
+            "scaleInDock": 1
+        },
+        "sprites cocina/The Circus Pin.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "sprites cocina/TopDownHouse_FurnitureState2.tsx": {
+            "scaleInDock": 1
+        },
+        "sprites cocina/TopDownHouse_SmallItems.tsx": {
+            "scaleInDock": 1
+        },
+        "sprites cocina/fondo.tmx": {
+            "scale": 2.79,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 60.39426523297491,
+                "y": 58.24372759856631
+            }
+        },
+        "sprites cocina/fondo_cocina.tmx": {
+            "scale": 1.6921875,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 101.34810710987998,
+                "y": 79.48291782086797
+            }
+        },
+        "sprites cocina/tiles and items.tsx": {
+            "scaleInDock": 1
         },
         "sprites fondo/TopDownHouse_FloorsAndWalls.tsx": {
             "scaleInDock": 1,
@@ -77,23 +122,29 @@
             "scaleInDock": 1
         }
     },
+    "last.imagePath": "/Users/bazuka/Desktop/Cuarto/Q2/CIIE/2D/assets/graphics/environments/sprites cocina",
     "openFiles": [
-        "fondo_cocina.tmx",
-        "/Users/bazuka/Desktop/fondo/TopDownHouse_SmallItems.tsx"
+        "sprites cocina/fondo.tmx",
+        "sprites cocina/The Circus Pin.tsx"
     ],
     "project": "",
     "recentFiles": [
-        "/Users/bazuka/Desktop/fondo/TopDownHouse_SmallItems.tsx",
+        "sprites cocina/The Circus Pin.tsx",
+        "sprites cocina/fondo.tmx",
+        "sprites cocina/fondo_cocina.tmx",
+        "/Users/bazuka/Desktop/fondo/untitled.tmx",
         "fondo_cocina.tmx",
+        "/Users/bazuka/Desktop/fondo/TopDownHouse_SmallItems.tsx",
         "/Users/bazuka/Desktop/fondo/Photo from Ocha Mi.tsx",
         "/Users/bazuka/Desktop/fondo/RPG Maker Games Pin.tsx",
         "/Users/bazuka/Desktop/fondo/small_furnitre.tsx",
         "/Users/bazuka/Desktop/fondo/TopDownHouse_FurnitureState2.tsx",
         "/Users/bazuka/Desktop/fondo/tiles and items.tsx",
-        "/Users/bazuka/Desktop/fondo/Blue Floor Tiles.tsx",
-        "/Users/bazuka/Desktop/fondo/counters.tsx",
-        "/Users/bazuka/Desktop/fondo/floor_blue_tiles.tsx",
-        "/Users/bazuka/Desktop/fondo/untitled.tmx",
-        "/Users/bazuka/Downloads/untitled.tmx"
-    ]
+        "/Users/bazuka/Desktop/fondo/Blue Floor Tiles.tsx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
 }

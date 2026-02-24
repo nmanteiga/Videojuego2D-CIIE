@@ -24,7 +24,7 @@ class MenuPausa(Escena):
         self.icono_rect = self.icono.get_rect(center = (64, 64))
 
         # Texto del menú
-        self.font_texto = pygame.font.SysFont("Calibri", 40, bold = True)
+        self.font_texto = pygame.font.SysFont("Calibri", 45, bold = True)
         self.texto = self.font_texto.render("PAUSA", True, (255, 255, 255))
         self.texto_rect = self.texto.get_rect(center = (ANCHO / 2, (ALTO / 2) - 100))
 
@@ -37,6 +37,16 @@ class MenuPausa(Escena):
         self.font_boton = pygame.font.SysFont("Calibri", 45)
         self.texto_boton = self.font_boton.render("CONTINUAR", True, (0, 0, 0))
         self.texto_boton_rect = self.texto_boton.get_rect(center = self.boton_rect.center)
+
+        # Botón de volver a inicio (lo siento por los nombres horribles)
+        self.boton_inicio_marco_base = pygame.image.load(MARCO_BASE).convert_alpha()
+        self.boton_inicio_marco_base = pygame.transform.scale(self.boton_inicio_marco_base, (320, 100))
+        self.boton_inicio_marco_hover = pygame.image.load(MARCO_HOVER).convert_alpha()
+        self.boton_inicio_marco_hover = pygame.transform.scale(self.boton_inicio_marco_hover, (320, 100))
+        self.boton_inicio_rect = self.boton_inicio_marco_base.get_rect(center = (ANCHO / 2, (ALTO / 2) + 125))
+        self.font_boton_inicio = pygame.font.SysFont("Calibri", 45)
+        self.texto_boton_inicio = self.font_boton_inicio.render("INICIO", True, (0, 0, 0))
+        self.texto_boton_inicio_rect = self.texto_boton_inicio.get_rect(center = self.boton_inicio_rect.center)
     
     def eventos(self, lista_eventos):
         # Se comprueba si se quiere salir de la escena
@@ -52,6 +62,13 @@ class MenuPausa(Escena):
                 if evento.button == 1: # Click izquierdo
                     if self.boton_rect.collidepoint(evento.pos): # Si se hace click dentro del botón
                         self.director.salirEscena()
+            
+            # Si se hace click dentro del botón de volver a menu inicio...
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                if evento.button == 1: # Click izquierdo
+                    if self.boton_inicio_rect.collidepoint(evento.pos): # Si se hace click dentro del botón
+                        from menuInicio import MenuPrincipal
+                        self.director.cambiarEscena(MenuPrincipal(self.director))
             
             if evento.type == pygame.QUIT:
                 self.director.salirPrograma()
@@ -84,3 +101,11 @@ class MenuPausa(Escena):
             pantalla.blit(self.boton_marco_base, self.boton_rect)
         
         pantalla.blit(self.texto_boton, self.texto_boton_rect)
+
+        # Dibujado del botón para volver a inicio...
+        if self.boton_inicio_rect.collidepoint(raton_pos):
+            pantalla.blit(self.boton_inicio_marco_hover, self.boton_inicio_rect)
+        else:
+            pantalla.blit(self.boton_inicio_marco_base, self.boton_inicio_rect)
+        
+        pantalla.blit(self.texto_boton_inicio, self.texto_boton_inicio_rect)
