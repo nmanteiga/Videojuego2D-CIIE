@@ -1,5 +1,5 @@
 {
-    "activeFile": "sprites cocina/fondo.tmx",
+    "activeFile": "sprites cocina/fondo_completo.tmx",
     "expandedProjectPaths": [
         ".",
         "sprites fondo"
@@ -78,6 +78,14 @@
                 "y": 60.24096385542168
             }
         },
+        "fondo_completo.tmx": {
+            "scale": 0.8274,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 19.94198694706313,
+                "y": 336.59656756103453
+            }
+        },
         "sprites cocina/Blue Floor Tiles.tsx": {
             "scaleInDock": 1
         },
@@ -92,11 +100,11 @@
             "scaleInDock": 1
         },
         "sprites cocina/fondo.tmx": {
-            "scale": 2.79,
+            "scale": 0.6305,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 60.39426523297491,
-                "y": 58.24372759856631
+                "x": 230.7692307692308,
+                "y": 400.4758128469469
             }
         },
         "sprites cocina/fondo_cocina.tmx": {
@@ -105,6 +113,14 @@
             "viewCenter": {
                 "x": 101.34810710987998,
                 "y": 79.48291782086797
+            }
+        },
+        "sprites cocina/fondo_completo.tmx": {
+            "scale": 0.8241,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": -7.887392306758898,
+                "y": 302.7545200825142
             }
         },
         "sprites cocina/tiles and items.tsx": {
@@ -123,14 +139,16 @@
         }
     },
     "last.imagePath": "/Users/bazuka/Desktop/Cuarto/Q2/CIIE/2D/assets/graphics/environments/sprites cocina",
+    "map.lastUsedFormat": "tmx",
     "openFiles": [
-        "sprites cocina/fondo.tmx",
-        "sprites cocina/The Circus Pin.tsx"
+        "sprites cocina/fondo_completo.tmx"
     ],
     "project": "",
     "recentFiles": [
-        "sprites cocina/The Circus Pin.tsx",
+        "sprites cocina/fondo_completo.tmx",
         "sprites cocina/fondo.tmx",
+        "fondo_completo.tmx",
+        "sprites cocina/The Circus Pin.tsx",
         "sprites cocina/fondo_cocina.tmx",
         "/Users/bazuka/Desktop/fondo/untitled.tmx",
         "fondo_cocina.tmx",
@@ -138,9 +156,7 @@
         "/Users/bazuka/Desktop/fondo/Photo from Ocha Mi.tsx",
         "/Users/bazuka/Desktop/fondo/RPG Maker Games Pin.tsx",
         "/Users/bazuka/Desktop/fondo/small_furnitre.tsx",
-        "/Users/bazuka/Desktop/fondo/TopDownHouse_FurnitureState2.tsx",
-        "/Users/bazuka/Desktop/fondo/tiles and items.tsx",
-        "/Users/bazuka/Desktop/fondo/Blue Floor Tiles.tsx"
+        "/Users/bazuka/Desktop/fondo/TopDownHouse_FurnitureState2.tsx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {
