@@ -95,10 +95,22 @@ class Player(pygame.sprite.Sprite):
         # Spawn point en la cocina (abajo a la izquierda)
         self.rect.center = (400, ALTO_MAPA - 300) 
         self.velocidad = 6 
+
+        HITBOX_ANCHO = 120
+        HITBOX_ALTO = 140
+        self.hitbox = pygame.Rect(0, 0, HITBOX_ANCHO, HITBOX_ALTO)
+        self.hitbox.center = self.rect.center
+
+        hitbox_surf = pygame.Surface((HITBOX_ANCHO, HITBOX_ALTO), pygame.SRCALPHA)
+        hitbox_surf.fill((255, 255, 255, 255))
+        self.hitbox_mask = pygame.mask.from_surface(hitbox_surf)
+
+        self.pos_x = float(self.hitbox.x)
+        self.pos_y = float(self.hitbox.y)
         
     def check_collision(self):
-        offset = (self.rect.x, self.rect.y)
-        return self.mask_colision_mapa.overlap(self.mask, offset)
+        offset = (self.hitbox.x, self.hitbox.y)
+        return self.mask_colision_mapa.overlap(self.hitbox_mask, offset)
 
     def update(self):
         teclas = pygame.key.get_pressed()
@@ -114,17 +126,23 @@ class Player(pygame.sprite.Sprite):
             dx /= magnitud
             dy /= magnitud
         
-        move_x = dx * self.velocidad
-        self.rect.x += move_x
-        if self.check_collision(): 
-            self.rect.x -= move_x 
-        
-        move_y = dy * self.velocidad
-        self.rect.y += move_y
-        if self.check_collision(): 
-            self.rect.y -= move_y  
+        old_pos_x = self.pos_x
+        self.pos_x += dx * self.velocidad
+        self.hitbox.x = round(self.pos_x)
+        if self.check_collision():
+            self.pos_x = old_pos_x
+            self.hitbox.x = round(self.pos_x)
+
+        old_pos_y = self.pos_y
+        self.pos_y += dy * self.velocidad
+        self.hitbox.y = round(self.pos_y)
+        if self.check_collision():
+            self.pos_y = old_pos_y
+            self.hitbox.y = round(self.pos_y)
 
         self.rect.clamp_ip(pygame.Rect(0, 0, ANCHO_MAPA, ALTO_MAPA))
+        self.pos_x = float(self.hitbox.x)
+        self.pos_y = float(self.hitbox.y)
 
         if dx == 0 and dy == 0:
             animation_base = f'idle_{self.last_action_base}'  
@@ -173,7 +191,7 @@ class Player(pygame.sprite.Sprite):
         
         self.image = scaled_frame
         self.rect = self.image.get_rect()
-        self.rect.center = old_center
+        self.rect.center = self.hitbox.center
         self.mask = pygame.mask.from_surface(self.image)
 
 
@@ -221,3 +239,7 @@ class Juego(Escena):
             
         # COMENTADO
         # pantalla.blit(self.frente, self.camara.aplicar_rect(self.frente.get_rect()))
+
+        #debug para axustar a hitbox visualmente
+        #hitbox_en_pantalla = self.camara.aplicar_rect(self.jugador.hitbox)
+        #pygame.draw.rect(pantalla, (255, 0, 0), hitbox_en_pantalla, 2)
