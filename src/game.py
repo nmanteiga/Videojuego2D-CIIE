@@ -12,7 +12,7 @@ from sprtesheet import SpriteSheet
 SCALE = 4  
 # ANCHO, ALTO = 800, 600 (Definidos en escena.py)
 
-ANCHO_MAPA = 1472
+ANCHO_MAPA = 2112 # El anterior ancho era 1472, pero era demasiado estrecho
 ALTO_MAPA = 3200
 
 HOME = os.path.dirname(__file__)
@@ -28,27 +28,87 @@ PERSONAJE_MOVE = os.path.join(GRAPHICS_FILE, "characters", "Walk-Sheet.png")
 
 # --- CLASE CÁMARA ---
 class Camara:
-    def __init__(self, width, height):
-        self.camara = pygame.Rect(0, 0, width, height)
+    def __init__(self, width, height, world_width, world_height, zoom):
+        # Tamaño de la ventana de visualización:
         self.width = width
         self.height = height
+
+        # Tamaño del mapa:
+        self.world_width = world_width
+        self.world_height = world_height
+
+        # Nivel de zoom:
+        self.zoom = zoom
+
+        # Tamaño de lo que ve la cámara con el zoom (viewport):
+        self.viewport_width = int(self.width / self.zoom)
+        self.viewport_height = int(self.height / self.zoom)
+
+        # Inicializamos la cámara final:
+        self.ancho_cam = self.viewport_width
+        self.alto_cam = self.viewport_height
+        self.camara = pygame.Rect(0, 0, self.ancho_cam, self.alto_cam)
+
+        # Ajustes para el suavizado de la cámara:
+        self.cam_x = 0.0
+        self.cam_y = 0.0
+        self.camara.topleft = (int(self.cam_x), int(self.cam_y))
+        self.factor_suav = 0.12 # Entre 0.10 y 0.15 es donde mejor funciona
+
+    # Interpolación lineal para el suavizado de la cámara:
+    def interp(self, a, b, t):
+        return a + (b - a) * t
 
     def aplicar(self, entidad):
         return entidad.rect.move(self.camara.topleft)
 
     def aplicar_rect(self, rect):
         return rect.move(self.camara.topleft)
+    
+    # La cámara se actualiza dependiendo de si el jugador se encuentra o no en una sala:
+    def update(self, objetivo, salas):
+        # En caso de que el jugador se encuentre en una sala:
+        for sala in salas:
+            if sala.collidepoint(objetivo.rect.center):
+                if sala.width <= self.ancho_cam and sala.height <= self.alto_cam:
+                    # Si la sala es más pequeña que la cámara, esta se centra y se bloquea:
+                    x = -sala.centerx + int(self.ancho_cam / 2)
+                    y = -sala.centery + int(self.alto_cam / 2)
+                else:
+                    # En el caso contrario, la cámara se puede desplazar, pero sólo dentro de la sala:
+                    x = -objetivo.hitbox.centerx + int(self.ancho_cam / 2) # Se usa la hitbox como referencia para...
+                    y = -objetivo.hitbox.centery + int(self.alto_cam / 2) # ... intentar evitar errores de desincronización
 
-    def actualizar(self, objetivo):
-        x = -objetivo.rect.centerx + int(ANCHO / 2)
-        y = -objetivo.rect.centery + int(ALTO / 2)
+                    # Establecemos los límites de la sala:
+                    lim_izq = -sala.left
+                    lim_der = -(sala.right - self.ancho_cam)
+                    lim_sup = -sala.top
+                    lim_inf = -(sala.bottom - self.alto_cam)
 
-        x = min(0, x)  
-        y = min(0, y)  
-        x = max(-(self.width - ANCHO), x)  
-        y = max(-(self.height - ALTO), y)  
+                    x = max(lim_der, min(lim_izq, x)) # Obliga a estar entre el límite derecho e izquierdo
+                    y = max(lim_inf, min(lim_sup, y)) # Obliga a estar entre el límite superior e inferior
+                
+                # Actualización de la camara con suavizado:
+                self.cam_x = self.interp(self.cam_x, x, self.factor_suav)
+                self.cam_y = self.interp(self.cam_y, y, self.factor_suav)
+                self.camara.topleft = (int(self.cam_x), int(self.cam_y))
+                return
+        
+        # Si el jugador no se encuentra en ninguna sala, el comportamiento es el normal:
+        x = -objetivo.hitbox.centerx + int(self.ancho_cam / 2) # Se usa la hitbox como referencia para...
+        y = -objetivo.hitbox.centery + int(self.alto_cam / 2) # ... intentar evitar errores de desincronización
 
-        self.camara = pygame.Rect(x, y, self.width, self.height)
+        # Se ajusta la cámara a los límites del mapa:
+        x = min(0, x)
+        y = min(0, y)
+        x = max(-(self.world_width - self.ancho_cam), x)
+        y = max(-(self.world_height - self.alto_cam), y)
+
+        # Actualización de la camara con suavizado:
+        self.cam_x = self.interp(self.cam_x, x, self.factor_suav)
+        self.cam_y = self.interp(self.cam_y, y, self.factor_suav)
+        self.camara.topleft = (int(self.cam_x), int(self.cam_y))
+        return
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, mask_colision_mapa):
@@ -215,7 +275,30 @@ class Juego(Escena):
         self.sprites = pygame.sprite.Group()
         self.sprites.add(self.jugador)
 
-        self.camara = Camara(ANCHO_MAPA, ALTO_MAPA)
+        self.camara = Camara(ANCHO, ALTO, ANCHO_MAPA, ALTO_MAPA, zoom = 0.95)
+
+        # Se definen las coordenadas de las salas para el funcionamiento de la cámara:
+        self.salas = [
+            pygame.Rect(0, ALTO_MAPA - 640, 828, 630), # Cocina
+            pygame.Rect(1280, 1920, 828, 630), # Sala del medio derecha
+            pygame.Rect(0, 640, 828, 1280) # Laberinto de arriba izquierda
+        ]
+
+        # Al comenzar, la cámara se centra en la sala inicial (la cocina):
+        self.sala_inicial = pygame.Rect(0, ALTO_MAPA - 640, 828, 630)
+        x = -self.sala_inicial.centerx + int(ANCHO / 2)
+        y = -self.sala_inicial.centery + int(ALTO / 2)
+
+        x = min(0, x)
+        y = min(0, y)
+        x = max(-(ANCHO_MAPA - ANCHO), x)
+        y = max(-(ALTO_MAPA - ALTO), y)
+
+        # Se calculan cam_x y cam_y para que la cámara no de ningún salto brusco al inicio.
+        # Ocurría porque cam_x y cam_y están como "0.0" en el init de la cámara:
+        self.camara.cam_x = x + 20 # Se suman 20 y 16 para que no haya ningún...
+        self.camara.cam_y = y + 16 # ... desplazamiento al inicio del juego
+        self.camara.camara.topleft = (int(x), int(y))
 
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
@@ -227,15 +310,22 @@ class Juego(Escena):
 
     def update(self, tiempo_pasado):
         self.sprites.update()
-        self.camara.actualizar(self.jugador)
+        self.camara.update(self.jugador, self.salas)
 
     def dibujar(self, pantalla):
         pantalla.fill((0, 0, 0))
 
-        pantalla.blit(self.fondo, self.camara.aplicar_rect(self.fondo.get_rect()))       
-        
+        # Ahora, la pantalla se dibuja y luego se escala correctamente:
+        render_surface = pygame.Surface((self.camara.ancho_cam, self.camara.alto_cam), pygame.SRCALPHA) # Resolución lógica más grande
+        render_surface.blit(self.fondo, self.camara.aplicar_rect(self.fondo.get_rect())) # Se dibuja el mundo en esa resolución
+
         for sprite in self.sprites:
-            pantalla.blit(sprite.image, self.camara.aplicar(sprite))
+            render_surface.blit(sprite.image, self.camara.aplicar(sprite))
+
+        # La resolución anterior se escala al tamaño real de la pantalla
+        scaled_surface = pygame.transform.scale(render_surface, (ANCHO, ALTO))
+
+        pantalla.blit(scaled_surface, (0, 0))
             
         # COMENTADO
         # pantalla.blit(self.frente, self.camara.aplicar_rect(self.frente.get_rect()))
