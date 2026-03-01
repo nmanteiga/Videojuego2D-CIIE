@@ -4,6 +4,7 @@ import os
 from escena import *
 from menuPausa import MenuPausa
 from sprtesheet import SpriteSheet
+from cocinado import XestorCocina
 
 # NOTA: todas las partes que he puesto COMENTADO son las de la capa de delante del counter en la cocina 
 #       las he comentado porque no lo apliqué al mapa completo aún, pero no afectan a la funcionalidad
@@ -15,6 +16,8 @@ SCALE = 4
 ANCHO_MAPA = 2112 # El anterior ancho era 1472, pero era demasiado estrecho
 ALTO_MAPA = 3200
 
+COLISION_SCALE_DOWN = 4
+
 HOME = os.path.dirname(__file__)
 ASSESTS_FILE = os.path.join(HOME, "..", "assets")
 GRAPHICS_FILE = os.path.join(ASSESTS_FILE, "graphics")
@@ -25,6 +28,21 @@ COLISION_IMG = os.path.join(GRAPHICS_FILE, "environments", "colisiones_fondo_com
 
 PERSONAJE_IDLE = os.path.join(GRAPHICS_FILE, "characters", "Idle sheet info.png")
 PERSONAJE_MOVE = os.path.join(GRAPHICS_FILE, "characters", "Walk-Sheet.png")
+
+def _preescalar_animaciones(animaciones, total_scale):
+    """Escala y voltea todos los frames UNA sola vez al arrancar."""
+    normales, volteados = {}, {}
+    for nombre, frames in animaciones.items():
+        fn, fv = [], []
+        for frame in frames:
+            w   = int(frame.get_width()  * total_scale)
+            h   = int(frame.get_height() * total_scale)
+            esc = pygame.transform.scale(frame, (w, h))
+            fn.append(esc)
+            fv.append(pygame.transform.flip(esc, True, False))
+        normales[nombre]  = fn
+        volteados[nombre] = fv
+    return normales, volteados
 
 # --- CLASE CÁMARA ---
 class Camara:
@@ -115,13 +133,14 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
         
         self.mask_colision_mapa = mask_colision_mapa
+        self.colision_scale_down = COLISION_SCALE_DOWN
         self.extra_scale = 1.8 
         self.total_scale = SCALE * self.extra_scale
 
         try:
             sprite_sheet = SpriteSheet(PERSONAJE_IDLE)
             walk_sheet = SpriteSheet(PERSONAJE_MOVE)
-            self.animations = {
+            raw = {
                 'idle_down': sprite_sheet.load_strip((0, 0, 16, 16), 4),
                 'idle_dup': sprite_sheet.load_strip((0, 16, 16, 16), 4),
                 'idle_r': sprite_sheet.load_strip((0, 32, 16, 16), 4),
@@ -133,44 +152,49 @@ class Player(pygame.sprite.Sprite):
                 'walk_ddown': walk_sheet.load_strip((0, 48, 16, 16), 4),
                 'walk_up': walk_sheet.load_strip((0, 64, 16, 16), 4),
             }
-            
-            self.last_action_base = 'down'
-            self.current_animation = 'idle_down'
-            self.facing_right = True
-            self.current_frame = 0
-            self.animation_speed = 4/60
-            self.animation_timer = 0
-            
-            frame = self.animations[self.current_animation][self.current_frame]
-            new_width = int(frame.get_width() * self.total_scale)  
-            new_height = int(frame.get_height() * self.total_scale) 
-            self.image = pygame.transform.scale(frame, (new_width, new_height))
-            
-            self.mask = pygame.mask.from_surface(self.image)
-
+            self.animations, self.animations_flip = _preescalar_animaciones(raw, self.total_scale)
+            # Máscaras pre-calculadas — nunca más en update()
+            self.masks      = {k: [pygame.mask.from_surface(f) for f in v]
+                               for k, v in self.animations.items()}
+            self.masks_flip = {k: [pygame.mask.from_surface(f) for f in v]
+                               for k, v in self.animations_flip.items()}
         except (FileNotFoundError, pygame.error) as e:
             print(f"Error cargando spritesheet: {e}")
+            raise
+            
+        self.last_action_base = 'down'
+        self.current_animation = 'idle_down'
+        self.facing_right = True
+        self.current_frame = 0
+        self.animation_speed = 4/60
+        self.animation_timer = 0
+        
+        self.image = self.animations['idle_down'][0]
+        self.mask  = self.masks['idle_down'][0]
+        self.rect  = self.image.get_rect()
+        self.rect.center = (400, ALTO_MAPA - 300)
+        self.velocidad = 6
 
-        self.rect = self.image.get_rect()
-        # Spawn point en la cocina (abajo a la izquierda)
-        self.rect.center = (400, ALTO_MAPA - 300) 
-        self.velocidad = 6 
 
         HITBOX_ANCHO = 120
         HITBOX_ALTO = 140
         self.hitbox = pygame.Rect(0, 0, HITBOX_ANCHO, HITBOX_ALTO)
         self.hitbox.center = self.rect.center
 
-        hitbox_surf = pygame.Surface((HITBOX_ANCHO, HITBOX_ALTO), pygame.SRCALPHA)
-        hitbox_surf.fill((255, 255, 255, 255))
-        self.hitbox_mask = pygame.mask.from_surface(hitbox_surf)
+        s = self.colision_scale_down
+        hw_r, hh_r = max(1, HITBOX_ANCHO // s), max(1, HITBOX_ALTO // s)
+        hsurf = pygame.Surface((hw_r, hh_r), pygame.SRCALPHA)
+        hsurf.fill((255, 255, 255, 255))
+        self.hitbox_mask = pygame.mask.from_surface(hsurf)
 
         self.pos_x = float(self.hitbox.x)
         self.pos_y = float(self.hitbox.y)
         
     def check_collision(self):
-        offset = (self.hitbox.x, self.hitbox.y)
-        return self.mask_colision_mapa.overlap(self.hitbox_mask, offset)
+        s  = self.colision_scale_down
+        ox = self.hitbox.x // s
+        oy = self.hitbox.y // s
+        return self.mask_colision_mapa.overlap(self.hitbox_mask, (ox, oy))
 
     def update(self):
         teclas = pygame.key.get_pressed()
@@ -231,28 +255,22 @@ class Player(pygame.sprite.Sprite):
         if animation_base != self.current_animation:
             self.current_animation = animation_base
             self.current_frame = 0
-        
+
         self.animation_timer += self.animation_speed
         if self.animation_timer >= 1:
             self.animation_timer = 0
-            frames = self.animations[self.current_animation]
-            self.current_frame = (self.current_frame + 1) % len(frames)
-        
-        frames = self.animations[self.current_animation]
-        frame = frames[self.current_frame]
-        
-        new_width = int(frame.get_width() * self.total_scale)
-        new_height = int(frame.get_height() * self.total_scale)
-        old_center = self.rect.center
-        
-        scaled_frame = pygame.transform.scale(frame, (new_width, new_height))
-        if not self.facing_right:
-            scaled_frame = pygame.transform.flip(scaled_frame, True, False)
-        
-        self.image = scaled_frame
+            self.current_frame = (self.current_frame + 1) % len(self.animations[self.current_animation])
+
+        # Imagen y máscara PRE-CALCULADAS — sin transform en runtime
+        if self.facing_right:
+            self.image = self.animations[self.current_animation][self.current_frame]
+            self.mask  = self.masks[self.current_animation][self.current_frame]
+        else:
+            self.image = self.animations_flip[self.current_animation][self.current_frame]
+            self.mask  = self.masks_flip[self.current_animation][self.current_frame]
+
         self.rect = self.image.get_rect()
         self.rect.center = self.hitbox.center
-        self.mask = pygame.mask.from_surface(self.image)
 
 
 class Juego(Escena):
@@ -266,9 +284,11 @@ class Juego(Escena):
         # COMENTADO
         # self.frente = pygame.image.load(FRENTE_IMG).convert_alpha()
         # self.frente = pygame.transform.scale(self.frente, (ANCHO_MAPA, ALTO_MAPA))
-
+        s = COLISION_SCALE_DOWN
         col_img = pygame.image.load(COLISION_IMG).convert_alpha()
-        col_img = pygame.transform.scale(col_img, (ANCHO_MAPA, ALTO_MAPA))
+        col_w   = ANCHO_MAPA // s
+        col_h   = ALTO_MAPA  // s
+        col_img = pygame.transform.scale(col_img, (col_w, col_h))
         self.mask_colision = pygame.mask.from_surface(col_img)
 
         self.jugador = Player(self.mask_colision)
@@ -294,13 +314,14 @@ class Juego(Escena):
         x = max(-(ANCHO_MAPA - ANCHO), x)
         y = max(-(ALTO_MAPA - ALTO), y)
 
-        # Se calculan cam_x y cam_y para que la cámara no de ningún salto brusco al inicio.
-        # Ocurría porque cam_x y cam_y están como "0.0" en el init de la cámara:
-        self.camara.cam_x = x + 20 # Se suman 20 y 16 para que no haya ningún...
-        self.camara.cam_y = y + 16 # ... desplazamiento al inicio del juego
-        self.camara.camara.topleft = (int(x), int(y))
+        self.cocina = XestorCocina(self.jugador)
+
+        self._render_surf = pygame.Surface(
+            (self.camara.ancho_cam, self.camara.alto_cam), pygame.SRCALPHA
+        )
 
     def eventos(self, lista_eventos):
+        self.cocina.eventos(lista_eventos) 
         for evento in lista_eventos:
             if evento.type == pygame.QUIT:
                 self.director.salirPrograma()
@@ -311,20 +332,21 @@ class Juego(Escena):
     def update(self, tiempo_pasado):
         self.sprites.update()
         self.camara.update(self.jugador, self.salas)
+        self.cocina.update(tiempo_pasado)
 
     def dibujar(self, pantalla):
         pantalla.fill((0, 0, 0))
 
         # Ahora, la pantalla se dibuja y luego se escala correctamente:
-        render_surface = pygame.Surface((self.camara.ancho_cam, self.camara.alto_cam), pygame.SRCALPHA) # Resolución lógica más grande
-        render_surface.blit(self.fondo, self.camara.aplicar_rect(self.fondo.get_rect())) # Se dibuja el mundo en esa resolución
+        self._render_surf.fill((0, 0, 0, 0))
+        self._render_surf.blit(self.fondo, self.camara.aplicar_rect(self.fondo.get_rect()))
 
         for sprite in self.sprites:
-            render_surface.blit(sprite.image, self.camara.aplicar(sprite))
+            self._render_surf.blit(sprite.image, self.camara.aplicar(sprite))
 
+        self.cocina.dibujar(self._render_surf, self.camara)
         # La resolución anterior se escala al tamaño real de la pantalla
-        scaled_surface = pygame.transform.scale(render_surface, (ANCHO, ALTO))
-
+        scaled_surface = pygame.transform.scale(self._render_surf, (ANCHO, ALTO))
         pantalla.blit(scaled_surface, (0, 0))
             
         # COMENTADO
