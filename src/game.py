@@ -5,10 +5,7 @@ from escena import *
 from menuPausa import MenuPausa
 from sprtesheet import SpriteSheet
 from cocinado import XestorCocina
-
-# NOTA: todas las partes que he puesto COMENTADO son las de la capa de delante del counter en la cocina 
-#       las he comentado porque no lo apliqué al mapa completo aún, pero no afectan a la funcionalidad
-#       es más algo estético, cuando toque se cambiará pero mientras NO borrar las líneas con el # COMENTADO tysm
+from escena_room2 import Room2Event
 
 SCALE = 4  
 # ANCHO, ALTO = 800, 600 (Definidos en escena.py)
@@ -23,8 +20,7 @@ ASSESTS_FILE = os.path.join(HOME, "..", "assets")
 GRAPHICS_FILE = os.path.join(ASSESTS_FILE, "graphics")
 
 FONDO_IMG = os.path.join(GRAPHICS_FILE, "environments", "fondo_completo.png")  
-# FRENTE_IMG = os.path.join(GRAPHICS_FILE, "environments", "capa_frente.png")  # COMENTADO
-COLISION_IMG = os.path.join(GRAPHICS_FILE, "environments", "colisiones_fondo_completo.png") 
+COLISION_IMG = os.path.join(GRAPHICS_FILE, "environments", "colisiones.png") 
 
 PERSONAJE_IDLE = os.path.join(GRAPHICS_FILE, "characters", "Idle sheet info.png")
 PERSONAJE_MOVE = os.path.join(GRAPHICS_FILE, "characters", "Walk-Sheet.png")
@@ -84,18 +80,23 @@ class Camara:
         return rect.move(self.camara.topleft)
     
     # La cámara se actualiza dependiendo de si el jugador se encuentra o no en una sala:
-    def update(self, objetivo, salas):
+    def update(self, objetivo, salas, focus_world_pos=None):
+        if focus_world_pos is None:
+            objetivo_cx, objetivo_cy = objetivo.hitbox.center
+        else:
+            objetivo_cx, objetivo_cy = focus_world_pos
+
         # En caso de que el jugador se encuentre en una sala:
         for sala in salas:
-            if sala.collidepoint(objetivo.rect.center):
+            if sala.collidepoint((objetivo_cx, objetivo_cy)):
                 if sala.width <= self.ancho_cam and sala.height <= self.alto_cam:
                     # Si la sala es más pequeña que la cámara, esta se centra y se bloquea:
                     x = -sala.centerx + int(self.ancho_cam / 2)
                     y = -sala.centery + int(self.alto_cam / 2)
                 else:
                     # En el caso contrario, la cámara se puede desplazar, pero sólo dentro de la sala:
-                    x = -objetivo.hitbox.centerx + int(self.ancho_cam / 2) # Se usa la hitbox como referencia para...
-                    y = -objetivo.hitbox.centery + int(self.alto_cam / 2) # ... intentar evitar errores de desincronización
+                    x = -objetivo_cx + int(self.ancho_cam / 2)
+                    y = -objetivo_cy + int(self.alto_cam / 2)
 
                     # Establecemos los límites de la sala:
                     lim_izq = -sala.left
@@ -113,8 +114,8 @@ class Camara:
                 return
         
         # Si el jugador no se encuentra en ninguna sala, el comportamiento es el normal:
-        x = -objetivo.hitbox.centerx + int(self.ancho_cam / 2) # Se usa la hitbox como referencia para...
-        y = -objetivo.hitbox.centery + int(self.alto_cam / 2) # ... intentar evitar errores de desincronización
+        x = -objetivo_cx + int(self.ancho_cam / 2)
+        y = -objetivo_cy + int(self.alto_cam / 2)
 
         # Se ajusta la cámara a los límites del mapa:
         x = min(0, x)
@@ -189,21 +190,33 @@ class Player(pygame.sprite.Sprite):
 
         self.pos_x = float(self.hitbox.x)
         self.pos_y = float(self.hitbox.y)
+        self.controls_enabled = True
+        self.extra_collision_rects = []
+
+    def set_extra_collision_rects(self, rects):
+        self.extra_collision_rects = list(rects)
         
     def check_collision(self):
         s  = self.colision_scale_down
         ox = self.hitbox.x // s
         oy = self.hitbox.y // s
-        return self.mask_colision_mapa.overlap(self.hitbox_mask, (ox, oy))
+        if self.mask_colision_mapa.overlap(self.hitbox_mask, (ox, oy)):
+            return True
+
+        for blocker in self.extra_collision_rects:
+            if self.hitbox.colliderect(blocker):
+                return True
+        return False
 
     def update(self):
-        teclas = pygame.key.get_pressed()
+        teclas = pygame.key.get_pressed() if self.controls_enabled else None
         dx, dy = 0, 0
         
-        if teclas[pygame.K_a]: dx -= 1
-        if teclas[pygame.K_d]: dx += 1
-        if teclas[pygame.K_w]: dy -= 1
-        if teclas[pygame.K_s]: dy += 1
+        if teclas:
+            if teclas[pygame.K_a]: dx -= 1
+            if teclas[pygame.K_d]: dx += 1
+            if teclas[pygame.K_w]: dy -= 1
+            if teclas[pygame.K_s]: dy += 1
         
         if dx != 0 or dy != 0:
             magnitud = (dx**2 + dy**2) ** 0.5
@@ -303,6 +316,12 @@ class Juego(Escena):
             pygame.Rect(1280, 1920, 828, 630), # Sala del medio derecha
             pygame.Rect(0, 640, 828, 1280) # Laberinto de arriba izquierda
         ]
+        self.room2_event = Room2Event(
+            GRAPHICS_FILE,
+            COLISION_SCALE_DOWN,
+            self.salas[2],
+            (ANCHO_MAPA, ALTO_MAPA),
+        )
 
         # Al comenzar, la cámara se centra en la sala inicial (la cocina):
         self.sala_inicial = pygame.Rect(0, ALTO_MAPA - 640, 828, 630)
@@ -330,8 +349,12 @@ class Juego(Escena):
                     self.director.apilarEscena(MenuPausa(self.director))
 
     def update(self, tiempo_pasado):
+        self.jugador.set_extra_collision_rects(self.room2_event.get_extra_collision_rects())
+
         self.sprites.update()
-        self.camara.update(self.jugador, self.salas)
+        focus_pos = self.room2_event.update(self.jugador, tiempo_pasado)
+
+        self.camara.update(self.jugador, self.salas, focus_world_pos=focus_pos)
         self.cocina.update(tiempo_pasado)
 
     def dibujar(self, pantalla):
@@ -340,11 +363,16 @@ class Juego(Escena):
         # Ahora, la pantalla se dibuja y luego se escala correctamente:
         self._render_surf.fill((0, 0, 0, 0))
         self._render_surf.blit(self.fondo, self.camara.aplicar_rect(self.fondo.get_rect()))
+        self.room2_event.draw_objects(self._render_surf, self.camara)
 
         for sprite in self.sprites:
             self._render_surf.blit(sprite.image, self.camara.aplicar(sprite))
 
+        self.room2_event.draw_front(self._render_surf, self.camara)
+
         self.cocina.dibujar(self._render_surf, self.camara)
+        self.room2_event.draw_light_overlay(self._render_surf, self.camara, self.jugador)
+
         # La resolución anterior se escala al tamaño real de la pantalla
         scaled_surface = pygame.transform.scale(self._render_surf, (ANCHO, ALTO))
         pantalla.blit(scaled_surface, (0, 0))
