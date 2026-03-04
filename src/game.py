@@ -15,12 +15,20 @@ ALTO_MAPA = 3200
 
 COLISION_SCALE_DOWN = 4
 
+AREA_LABERINTO = pygame.Rect(0, 160, 207, 319)
+AREA_COCINA = pygame.Rect(0, 640, 207, 159)
+AREA_COCINA = pygame.Rect(320, 512, 207, 127)
+
+NOITE = 0
+DEBUG_COLISION_MAPA = False
+
 HOME = os.path.dirname(__file__)
 ASSESTS_FILE = os.path.join(HOME, "..", "assets")
 GRAPHICS_FILE = os.path.join(ASSESTS_FILE, "graphics")
 
 FONDO_IMG = os.path.join(GRAPHICS_FILE, "environments", "fondo_completo.png")  
-COLISION_IMG = os.path.join(GRAPHICS_FILE, "environments", "colisiones.png") 
+# FRENTE_IMG = os.path.join(GRAPHICS_FILE, "environments", "capa_frente.png")  # COMENTADO
+COLISION_IMG = os.path.join(GRAPHICS_FILE, "environments", "colisiones_fondo_completo2.png") 
 
 PERSONAJE_IDLE = os.path.join(GRAPHICS_FILE, "characters", "Idle sheet info.png")
 PERSONAJE_MOVE = os.path.join(GRAPHICS_FILE, "characters", "Walk-Sheet.png")
@@ -177,8 +185,8 @@ class Player(pygame.sprite.Sprite):
         self.velocidad = 6
 
 
-        HITBOX_ANCHO = 120
-        HITBOX_ALTO = 140
+        HITBOX_ANCHO = 70
+        HITBOX_ALTO = 120
         self.hitbox = pygame.Rect(0, 0, HITBOX_ANCHO, HITBOX_ALTO)
         self.hitbox.center = self.rect.center
 
@@ -304,6 +312,11 @@ class Juego(Escena):
         col_img = pygame.transform.scale(col_img, (col_w, col_h))
         self.mask_colision = pygame.mask.from_surface(col_img)
 
+        col_debug = pygame.image.load(COLISION_IMG).convert_alpha()
+        col_debug = pygame.transform.scale(col_debug, (ANCHO_MAPA, ALTO_MAPA))
+        col_debug.set_alpha(80)
+        self.colision_debug_overlay = col_debug
+
         self.jugador = Player(self.mask_colision)
         self.sprites = pygame.sprite.Group()
         self.sprites.add(self.jugador)
@@ -359,6 +372,7 @@ class Juego(Escena):
 
     def dibujar(self, pantalla):
         pantalla.fill((0, 0, 0))
+        
 
         # Ahora, la pantalla se dibuja y luego se escala correctamente:
         self._render_surf.fill((0, 0, 0, 0))
@@ -371,6 +385,14 @@ class Juego(Escena):
         self.room2_event.draw_front(self._render_surf, self.camara)
 
         self.cocina.dibujar(self._render_surf, self.camara)
+
+        if DEBUG_COLISION_MAPA:
+            self._render_surf.blit(
+                self.colision_debug_overlay,
+                self.camara.aplicar_rect(self.colision_debug_overlay.get_rect())
+            )
+            self.colision_debug_overlay.set_alpha(80)
+
         self.room2_event.draw_light_overlay(self._render_surf, self.camara, self.jugador)
 
         # La resolución anterior se escala al tamaño real de la pantalla
@@ -383,3 +405,28 @@ class Juego(Escena):
         #debug para axustar a hitbox visualmente
         #hitbox_en_pantalla = self.camara.aplicar_rect(self.jugador.hitbox)
         #pygame.draw.rect(pantalla, (255, 0, 0), hitbox_en_pantalla, 2)
+
+
+        # --- Áreas definidas ---
+        areas = [
+            pygame.Rect(0, ALTO_MAPA - 640, 828, 630), # Cocina
+            pygame.Rect(1280, 1920, 828, 630), # Sala del medio derecha
+            pygame.Rect(0, 640, 828, 1280) # Laberinto de arriba izquierda
+        ]
+        # Cargar la imagen de fondo solo una vez
+        if not hasattr(self, '_area_bg_img'):
+            bg_path = os.path.join(GRAPHICS_FILE, 'environments', 'background.png')
+            if os.path.exists(bg_path):
+                self._area_bg_img = pygame.image.load(bg_path).convert_alpha()
+            else:
+                self._area_bg_img = None
+        # Dibujar la imagen de fondo en cada área donde el jugador NO está
+        if self._area_bg_img:
+            for area in areas:
+                if not area.collidepoint(self.jugador.hitbox.center):
+                    area_img = pygame.transform.scale(self._area_bg_img, (area.width, area.height))
+                    pantalla.blit(area_img, self.camara.aplicar_rect(area))
+        if NOITE == 1:
+            overlay = pygame.Surface(pantalla.get_size(), pygame.SRCALPHA)
+            overlay.fill((12, 4, 33, 180)) 
+            pantalla.blit(overlay, (0, 0))
