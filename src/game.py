@@ -352,6 +352,17 @@ class Juego(Escena):
             (self.camara.ancho_cam, self.camara.alto_cam), pygame.SRCALPHA
         )
 
+        # Pre-cargar y pre-escalar a imaxe de cuberta de sala unha soa vez:
+        bg_path = os.path.join(GRAPHICS_FILE, 'environments', 'background.png')
+        if os.path.exists(bg_path):
+            _bg_src = pygame.image.load(bg_path).convert_alpha()
+            self._area_bg_imgs = [
+                pygame.transform.scale(_bg_src, (sala.width, sala.height))
+                for sala in self.salas
+            ]
+        else:
+            self._area_bg_imgs = None
+
     def eventos(self, lista_eventos):
         self.cocina.eventos(lista_eventos) 
         for evento in lista_eventos:
@@ -395,37 +406,20 @@ class Juego(Escena):
 
         self.room2_event.draw_light_overlay(self._render_surf, self.camara, self.jugador)
 
+        # Cubrir as salas onde o xogador NON está (dentro de _render_surf, antes de escalar):
+        if self._area_bg_imgs:
+            for sala, area_img in zip(self.salas, self._area_bg_imgs):
+                if not sala.collidepoint(self.jugador.hitbox.center):
+                    self._render_surf.blit(area_img, self.camara.aplicar_rect(sala))
+
         # La resolución anterior se escala al tamaño real de la pantalla
         scaled_surface = pygame.transform.scale(self._render_surf, (ANCHO, ALTO))
         pantalla.blit(scaled_surface, (0, 0))
-            
-        # COMENTADO
-        # pantalla.blit(self.frente, self.camara.aplicar_rect(self.frente.get_rect()))
 
         #debug para axustar a hitbox visualmente
         #hitbox_en_pantalla = self.camara.aplicar_rect(self.jugador.hitbox)
         #pygame.draw.rect(pantalla, (255, 0, 0), hitbox_en_pantalla, 2)
 
-
-        # --- Áreas definidas ---
-        areas = [
-            pygame.Rect(0, ALTO_MAPA - 640, 828, 630), # Cocina
-            pygame.Rect(1280, 1920, 828, 630), # Sala del medio derecha
-            pygame.Rect(0, 640, 828, 1280) # Laberinto de arriba izquierda
-        ]
-        # Cargar la imagen de fondo solo una vez
-        if not hasattr(self, '_area_bg_img'):
-            bg_path = os.path.join(GRAPHICS_FILE, 'environments', 'background.png')
-            if os.path.exists(bg_path):
-                self._area_bg_img = pygame.image.load(bg_path).convert_alpha()
-            else:
-                self._area_bg_img = None
-        # Dibujar la imagen de fondo en cada área donde el jugador NO está
-        if self._area_bg_img:
-            for area in areas:
-                if not area.collidepoint(self.jugador.hitbox.center):
-                    area_img = pygame.transform.scale(self._area_bg_img, (area.width, area.height))
-                    pantalla.blit(area_img, self.camara.aplicar_rect(area))
         if NOITE == 1:
             overlay = pygame.Surface(pantalla.get_size(), pygame.SRCALPHA)
             overlay.fill((12, 4, 33, 180)) 
