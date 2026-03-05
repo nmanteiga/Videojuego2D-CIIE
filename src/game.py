@@ -15,11 +15,8 @@ ALTO_MAPA = 3200
 
 COLISION_SCALE_DOWN = 4
 
-AREA_LABERINTO = pygame.Rect(0, 160, 207, 319)
-AREA_COCINA = pygame.Rect(0, 640, 207, 159)
-AREA_COCINA = pygame.Rect(320, 512, 207, 127)
-
-NOITE = 0
+DÍA = 1
+NOITE = True
 DEBUG_COLISION_MAPA = False
 
 HOME = os.path.dirname(__file__)
@@ -27,8 +24,9 @@ ASSESTS_FILE = os.path.join(HOME, "..", "assets")
 GRAPHICS_FILE = os.path.join(ASSESTS_FILE, "graphics")
 
 FONDO_IMG = os.path.join(GRAPHICS_FILE, "environments", "fondo_completo.png")  
-# FRENTE_IMG = os.path.join(GRAPHICS_FILE, "environments", "capa_frente.png")  # COMENTADO
-COLISION_IMG = os.path.join(GRAPHICS_FILE, "environments", "colisiones_fondo_completo2.png") 
+FRENTE_IMG = os.path.join(GRAPHICS_FILE, "environments", "capa_frente.png")
+COLISION_IMG = os.path.join(GRAPHICS_FILE, "environments", "colisiones2.png")
+FRENTE_CLASE1 = os.path.join(GRAPHICS_FILE, "environments", "capa_frente_clase1.png")
 
 PERSONAJE_IDLE = os.path.join(GRAPHICS_FILE, "characters", "Idle sheet info.png")
 PERSONAJE_MOVE = os.path.join(GRAPHICS_FILE, "characters", "Walk-Sheet.png")
@@ -302,9 +300,13 @@ class Juego(Escena):
         self.fondo = pygame.image.load(FONDO_IMG).convert_alpha()
         self.fondo = pygame.transform.scale(self.fondo, (ANCHO_MAPA, ALTO_MAPA))
 
-        # COMENTADO
-        # self.frente = pygame.image.load(FRENTE_IMG).convert_alpha()
-        # self.frente = pygame.transform.scale(self.frente, (ANCHO_MAPA, ALTO_MAPA))
+        self.frente = pygame.image.load(FRENTE_IMG).convert_alpha()
+        self.frente = pygame.transform.scale(self.frente, (ANCHO_MAPA, ALTO_MAPA))
+
+        
+        self.frente_clase1 = pygame.image.load(FRENTE_CLASE1).convert_alpha()
+        self.frente_clase1 = pygame.transform.scale(self.frente_clase1, (ANCHO_MAPA, ALTO_MAPA))
+
         s = COLISION_SCALE_DOWN
         col_img = pygame.image.load(COLISION_IMG).convert_alpha()
         col_w   = ANCHO_MAPA // s
@@ -325,9 +327,9 @@ class Juego(Escena):
 
         # Se definen las coordenadas de las salas para el funcionamiento de la cámara:
         self.salas = [
-            pygame.Rect(0, ALTO_MAPA - 640, 828, 630), # Cocina
-            pygame.Rect(1280, 1920, 828, 630), # Sala del medio derecha
-            pygame.Rect(0, 640, 828, 1280) # Laberinto de arriba izquierda
+            pygame.Rect(0, ALTO_MAPA - 640, 832, 630), # Cocina
+            pygame.Rect(1280, 1910, 832, 660), # Sala del medio derecha
+            pygame.Rect(0, 640, 832, 1280) # Laberinto de arriba izquierda
         ]
         self.room2_event = Room2Event(
             GRAPHICS_FILE,
@@ -395,7 +397,11 @@ class Juego(Escena):
 
         self.room2_event.draw_front(self._render_surf, self.camara)
 
-        self.cocina.dibujar(self._render_surf, self.camara)
+        self._render_surf.blit(self.frente, self.camara.aplicar_rect(self.frente.get_rect()))
+
+        sala_clase1 = self.salas[1]  # Sala del medio derecha
+        if sala_clase1.collidepoint(self.jugador.hitbox.center):
+            self._render_surf.blit(self.frente_clase1, self.camara.aplicar_rect(self.frente_clase1.get_rect()))
 
         if DEBUG_COLISION_MAPA:
             self._render_surf.blit(
@@ -412,13 +418,11 @@ class Juego(Escena):
                 if not sala.collidepoint(self.jugador.hitbox.center):
                     self._render_surf.blit(area_img, self.camara.aplicar_rect(sala))
 
+        self.cocina.dibujar(self._render_surf, self.camara)
+
         # La resolución anterior se escala al tamaño real de la pantalla
         scaled_surface = pygame.transform.scale(self._render_surf, (ANCHO, ALTO))
         pantalla.blit(scaled_surface, (0, 0))
-
-        #debug para axustar a hitbox visualmente
-        #hitbox_en_pantalla = self.camara.aplicar_rect(self.jugador.hitbox)
-        #pygame.draw.rect(pantalla, (255, 0, 0), hitbox_en_pantalla, 2)
 
         if NOITE == 1:
             overlay = pygame.Surface(pantalla.get_size(), pygame.SRCALPHA)
