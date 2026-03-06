@@ -21,7 +21,8 @@ class MenuPausa(Escena):
         class PanelPausaGUI(PanelGUI):
             def __init__(self, menu):
                 super().__init__()
-                self.fuente_titulo = pygame.font.SysFont("Impact", 90)
+                from menuInicio import FONT_FILE
+                self.fuente_titulo = pygame.font.Font(FONT_FILE, 40)
                 self.titulo = self.fuente_titulo.render("PAUSA", True, (255, 215, 0))
                 self.sombra = self.fuente_titulo.render("PAUSA", True, (0, 0, 0))
                 self.titulo_rect = self.titulo.get_rect(center=(ANCHO//2, 180))

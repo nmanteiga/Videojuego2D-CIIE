@@ -364,6 +364,10 @@ class Juego(Escena):
             ]
         else:
             self._area_bg_imgs = None
+        
+        # Control del fade in inicial
+        self._fade_inicial = True
+        self._fade_alpha = 255
 
     def eventos(self, lista_eventos):
         self.cocina.eventos(lista_eventos) 
@@ -428,3 +432,13 @@ class Juego(Escena):
             overlay = pygame.Surface(pantalla.get_size(), pygame.SRCALPHA)
             overlay.fill((12, 4, 33, 180)) 
             pantalla.blit(overlay, (0, 0))
+
+        # Fade in inicial al empezar el juego
+        if self._fade_inicial:
+            fade_surface = pygame.Surface(pantalla.get_size())
+            fade_surface.fill((0, 0, 0))
+            fade_surface.set_alpha(self._fade_alpha)
+            pantalla.blit(fade_surface, (0, 0))
+            self._fade_alpha -= 5
+            if self._fade_alpha <= 0:
+                self._fade_inicial = False

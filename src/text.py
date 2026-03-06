@@ -1,27 +1,71 @@
 import pygame
 import sys
 import time
+import os
 
+HOME = os.path.dirname(__file__)
+FONT_FILE = os.path.join(HOME, "..", "assets", "fonts", "PressStart2P-Regular.ttf")
+ASSETS_PATH = os.path.join(HOME, "..", "assets")
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-# Initialize Pygame
-pygame.init()
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Visual Novel")
-font = pygame.font.Font(None, 24)
+LINE_SPACING = 8  # Espaciado extra entre líneas
 WHITE = (240, 240, 240)
 BLACK = (0, 0, 0)
 
-# Background image variable
-BACKGROUND_IMG = pygame.image.load("../assets/graphics/cinematica/bus1.png").convert()
-BACKGROUND_IMG = pygame.transform.scale(BACKGROUND_IMG, (SCREEN_WIDTH, SCREEN_HEIGHT))
+# Variables globales para el módulo
+screen = None
+font = None
+BACKGROUND_IMG = None
+CHARACTER_IMG = None
+ITEM_IMG = None
+
+def init_cinematics(pantalla):
+    global screen, font, BACKGROUND_IMG
+    screen = pantalla
+    font = pygame.font.Font(FONT_FILE, 14)
+    # Cargar imagen inicial
+    img = pygame.image.load(os.path.join(ASSETS_PATH, "graphics", "cinematica", "bus1.png")).convert()
+    BACKGROUND_IMG = pygame.transform.scale(img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Function to change background image
 def set_background(image_path):
     global BACKGROUND_IMG
     img = pygame.image.load(image_path).convert()
     BACKGROUND_IMG = pygame.transform.scale(img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+# Function to set black background
+def set_black_background():
+    global BACKGROUND_IMG
+    BACKGROUND_IMG = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+    BACKGROUND_IMG.fill(BLACK)
+
+# Function to load and set character image
+def set_character(image_path, scale=4):
+    global CHARACTER_IMG
+    if image_path is None:
+        CHARACTER_IMG = None
+        return
+    img = pygame.image.load(image_path).convert_alpha()
+    w, h = img.get_width() * scale, img.get_height() * scale
+    CHARACTER_IMG = pygame.transform.scale(img, (w, h))
+
+def set_item(image_path, scale=1):
+    global ITEM_IMG
+    if image_path is None:
+        ITEM_IMG = None
+        return
+    img = pygame.image.load(image_path).convert_alpha()
+    w, h = int(img.get_width() * scale), int(img.get_height() * scale)
+    ITEM_IMG = pygame.transform.scale(img, (w, h))
+
+def clear_character():
+    global CHARACTER_IMG
+    CHARACTER_IMG = None
+
+def clear_item():
+    global ITEM_IMG
+    ITEM_IMG = None
 
 # Fade functions
 def fade_in(surface, speed=4):
@@ -44,13 +88,68 @@ def fade_out(surface, speed=4):
         pygame.display.flip()
         pygame.time.delay(10)
 
-def display_text(text, x, y, font, color=WHITE):
+def show_item_from_bottom(image_path, scale=1, rise_speed=5, hold_time=2000):
+    img = pygame.image.load(image_path).convert_alpha()
+    w, h = int(img.get_width() * scale), int(img.get_height() * scale)
+    item = pygame.transform.scale(img, (w, h))
+    
+    item_x = (SCREEN_WIDTH - w) // 2
+    final_y = SCREEN_HEIGHT - h  # Posición final en la base de la pantalla
+    start_y = SCREEN_HEIGHT  # Empieza fuera de la pantalla (abajo)
+    
+    # Animación de subida
+    current_y = start_y
+    while current_y > final_y:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        
+        screen.blit(BACKGROUND_IMG, (0, 0))
+        screen.blit(item, (item_x, current_y))
+        pygame.display.flip()
+        current_y -= rise_speed
+        pygame.time.delay(10)
+    
+    # Mantener en posición final
+    screen.blit(BACKGROUND_IMG, (0, 0))
+    screen.blit(item, (item_x, final_y))
+    pygame.display.flip()
+    pygame.time.delay(hold_time)
+
+def wrap_text(text, font, max_width):
+    words = text.split(' ')
+    lines = []
+    current_line = ""
+    
+    for word in words:
+        test_line = current_line + word + " " if current_line else word + " "
+        if font.size(test_line)[0] <= max_width:
+            current_line = test_line
+        else:
+            if current_line:
+                lines.append(current_line.rstrip())
+            current_line = word + " "
+    
+    if current_line:
+        lines.append(current_line.rstrip())
+    
+    return lines
+
+def display_text(text, x, y, font, color=WHITE, max_width=None):
     lines = text.split('\n')
     y_offset = 0
     for line in lines:
-        text_surface = font.render(line, True, color)
-        screen.blit(text_surface, (x, y + y_offset))
-        y_offset += text_surface.get_height()
+        # Si hay max_width, hacer word wrap
+        if max_width:
+            wrapped_lines = wrap_text(line, font, max_width)
+        else:
+            wrapped_lines = [line]
+        
+        for wrapped_line in wrapped_lines:
+            text_surface = font.render(wrapped_line, True, color)
+            screen.blit(text_surface, (x, y + y_offset))
+            y_offset += text_surface.get_height() + LINE_SPACING
 
 def show_dialogue(dialogue_list, font, color=WHITE):
     index = 0
@@ -61,6 +160,7 @@ def show_dialogue(dialogue_list, font, color=WHITE):
     TEXTBOX_Y = SCREEN_HEIGHT - TEXTBOX_Y_OFFSET - TEXTBOX_HEIGHT
     TEXT_PADDING_X = 30
     TEXT_PADDING_Y = 15
+    TEXT_MAX_WIDTH = TEXTBOX_WIDTH - (TEXT_PADDING_X * 2)
     while index < len(dialogue_list):
         phrase = dialogue_list[index]
         current_length = 0
@@ -68,14 +168,28 @@ def show_dialogue(dialogue_list, font, color=WHITE):
         skip = False
         while not finished:
             screen.blit(BACKGROUND_IMG, (0, 0))
+            if CHARACTER_IMG is not None:
+                char_x = (SCREEN_WIDTH - CHARACTER_IMG.get_width()) // 2
+                # Base del personaje justo encima del text box
+                char_y = TEXTBOX_Y - CHARACTER_IMG.get_height()
+                if ITEM_IMG is not None:
+                    # Personaje más a la derecha para superponerse con el item
+                    char_x = (SCREEN_WIDTH // 2) - CHARACTER_IMG.get_width() + 40
+                screen.blit(CHARACTER_IMG, (char_x, char_y))
+            if ITEM_IMG is not None:
+                # Item más a la izquierda para superponerse con el personaje
+                item_x = (SCREEN_WIDTH // 2) - 40
+                # Base del item justo encima del text box
+                item_y = TEXTBOX_Y - ITEM_IMG.get_height()
+                screen.blit(ITEM_IMG, (item_x, item_y))
             draw_text_box(TEXTBOX_Y_OFFSET, width=TEXTBOX_WIDTH, height=TEXTBOX_HEIGHT, color=BLACK)
-            # Show only up to current_length characters
             display_text(
                 phrase[:current_length],
                 TEXTBOX_X + TEXT_PADDING_X,
                 TEXTBOX_Y + TEXT_PADDING_Y,
                 font,
-                color
+                color,
+                max_width=TEXT_MAX_WIDTH
             )
             pygame.display.flip()
 
@@ -116,29 +230,87 @@ def draw_text_box(y_offset, width=SCREEN_WIDTH-40, height=100, color=BLACK):
 
 # Example dialogue
 dialogues1 = [
-    "Érase una vez blablablabla",
-    "Nuestro personaje blabla",
-    "blablabla..."
+    "Era principios de Septiembre de 20XX...",
+    "En un lugar de la UDC, de cuyo nombre no quiero acordarme...",
+    "Donde los autobuses siempre van o vacíos o llevan a facultades enteras dentro..."
 ]
 dialogues2 = [
-    "LLegó a clase blablablabla",
-    "blabla",
-    "blablabla..."
+    "Carlitos (por alguna razón) estaba muy emocionado de empezar su primer año de facultad...",
+    "Sin embargo...",
+    "No tenía ni idea de lo que su destino le depararía..."
 ]
 
-# Main loop
-running = True
-fade_in(screen)  # Fade from black at start
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+dialogues3 = [
+    "Hola pichi, ¿qué vas a querer?",
+    "¿Una tortilla? Maaaaarchando papi",
+]
 
+dialogues3_jumpscare = [
+    "LÁZARO UNA TORTILLA PARA EL RUBIO ESTE",
+    "(Carlitos no es rubio)"
+]
+
+dialogues4_tortilla = [
+    "Aquí tienes tu tortilla, papi",
+    "Que aproveche",
+    "Espera pichi, primero tienes que pagar",
+    "Serían $$$ en total"
+]
+
+dialogues4_enfadado = [
+    "¿Cómo que no tienes dinero?",
+    "¡¿?!",
+    "(Carlitos siente un duro golpe y la vista se le pone en negro)"
+]
+
+dialogue_transicion = [
+    "Parece que Michel ha secuestrado a Carlitos...",
+    "Y lo va a obligar a trabajar en la cafetería para pagar su deuda."
+]
+
+def run_cinematics(pantalla):
+    init_cinematics(pantalla)
+    
+    fade_in(screen) 
     show_dialogue(dialogues1, font, WHITE)
     fade_out(screen)
-    set_background("../assets/graphics/cinematica/facu1.png")
+    set_background(os.path.join(ASSETS_PATH, "graphics", "cinematica", "facu1.png"))
     fade_in(screen)
     show_dialogue(dialogues2, font, WHITE)
-    fade_out(screen)  # Fade to black at end
+    fade_out(screen)
+    set_background(os.path.join(ASSETS_PATH, "graphics", "cinematica", "cafeta.png"))
+    set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_normal.png"), scale=0.60)
+    fade_in(screen)
+    show_dialogue(dialogues3, font, WHITE)
+    set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_jumpScare.png"), scale=0.75)
+    show_dialogue(dialogues3_jumpscare, font, WHITE)
+    clear_character()
+    fade_out(screen)
+    
+    set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_normal.png"), scale=0.60)
+    set_item(os.path.join(ASSETS_PATH, "graphics", "ui", "tortilla.png"), scale=0.5)
+    fade_in(screen)
+    show_dialogue(dialogues4_tortilla, font, WHITE)
+    clear_item()
+    clear_character()
+    show_item_from_bottom(os.path.join(ASSETS_PATH, "graphics", "ui", "cartera_vacia.png"), scale=0.8, rise_speed=8, hold_time=2500)
+    set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_enfadao.png"), scale=0.60)
+    show_dialogue(dialogues4_enfadado, font, WHITE)
+    clear_character()
+    fade_out(screen)  
+    
+    pygame.time.delay(500)
+    set_black_background()
+    screen.fill(BLACK)
+    pygame.display.flip()
+    show_dialogue(dialogue_transicion, font, WHITE)
+    pygame.event.clear()
+
+# Solo ejecutar si se llama directamente (para pruebas)
+if __name__ == "__main__":
+    pygame.init()
+    pantalla = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Cinematicas - Test")
+    run_cinematics(pantalla)
     pygame.quit()
     sys.exit()

@@ -1,6 +1,38 @@
 import pygame
+import os
+from PIL import Image
 from escena import Escena, ANCHO, ALTO
-from game import Juego, FONDO_IMG
+from game import Juego, FONDO_IMG, GRAPHICS_FILE
+from text import run_cinematics
+
+HOME = os.path.dirname(__file__)
+ASSETS_FILE = os.path.join(HOME, "..", "assets")
+FONT_FILE = os.path.join(ASSETS_FILE, "fonts", "PressStart2P-Regular.ttf")
+MENU_GIF = os.path.join(GRAPHICS_FILE, "ui", "menuInicio.gif")
+
+def cargar_gif(ruta, ancho, alto):
+    frames = []
+    duraciones = []
+    gif = Image.open(ruta)
+    
+    try:
+        while True:
+            # Convertir frame a formato pygame
+            frame = gif.convert("RGBA")
+            frame = frame.resize((ancho, alto), Image.Resampling.LANCZOS)
+            data = frame.tobytes()
+            superficie = pygame.image.fromstring(data, (ancho, alto), "RGBA")
+            frames.append(superficie)
+            
+            # Obtener duración del frame (en ms)
+            duracion = gif.info.get('duration', 100)
+            duraciones.append(duracion)
+            
+            gif.seek(gif.tell() + 1)
+    except EOFError:
+        pass
+    
+    return frames, duraciones
 
 #PATRÓN COMPONENTE
 class ElementoGUI:
@@ -32,7 +64,7 @@ class BotonEstilizado(ElementoGUI):
         self.color_borde = (255, 215, 0)   
         self.color_texto = (255, 255, 255)
 
-        self.fuente = pygame.font.SysFont("Calibri", 30, bold=True)
+        self.fuente = pygame.font.Font(FONT_FILE, 16)
         self.texto_render = self.fuente.render(self.texto_str, True, self.color_texto)
         self.texto_rect = self.texto_render.get_rect(center=self.rect.center)
 
@@ -62,6 +94,9 @@ class PanelGUI:
     def __init__(self):
         self.elementosGUI = []
 
+    def update(self, tiempo_pasado):
+        pass
+
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
@@ -78,31 +113,24 @@ class PanelInicialGUI(PanelGUI):
         super().__init__()
         self.menu = menu
         
-        self.fondo = pygame.image.load(FONDO_IMG).convert_alpha()
-        self.fondo = pygame.transform.scale(self.fondo, (ANCHO, ALTO))
+        self.frames_fondo, self.duraciones = cargar_gif(MENU_GIF, ANCHO, ALTO)
+        self.frame_actual = 0
+        self.tiempo_acumulado = 0
         
-        self.fuente_titulo = pygame.font.SysFont("Impact", 90)
-        self.titulo = self.fuente_titulo.render("SCAPE FROM FIC", True, (255, 215, 0))
-        self.sombra = self.fuente_titulo.render("SCAPE FROM FIC", True, (0, 0, 0))
-        self.titulo_rect = self.titulo.get_rect(center=(ANCHO//2, 180))
-
-        btn_jugar = BotonEstilizado("JUGAR", ANCHO//2, 380, self.menu.ejecutarJuego)
-        btn_salir = BotonEstilizado("SALIR", ANCHO//2, 470, self.menu.salirPrograma)
+        btn_jugar = BotonEstilizado("JUGAR", ANCHO//2, 430, self.menu.ejecutarJuego)
+        btn_salir = BotonEstilizado("SALIR", ANCHO//2, 510, self.menu.salirPrograma)
         
         self.elementosGUI.append(btn_jugar)
         self.elementosGUI.append(btn_salir)
 
+    def update(self, tiempo_pasado):
+        self.tiempo_acumulado += tiempo_pasado
+        if self.tiempo_acumulado >= self.duraciones[self.frame_actual]:
+            self.tiempo_acumulado = 0
+            self.frame_actual = (self.frame_actual + 1) % len(self.frames_fondo)
+
     def dibujar(self, pantalla):
-        pantalla.blit(self.fondo, (0, 0))
-        
-        overlay = pygame.Surface((ANCHO, ALTO))
-        overlay.set_alpha(120) 
-        overlay.fill((0, 0, 0))
-        pantalla.blit(overlay, (0, 0))
-        
-        pantalla.blit(self.sombra, (self.titulo_rect.x + 5, self.titulo_rect.y + 5))
-        pantalla.blit(self.titulo, self.titulo_rect)
-        
+        pantalla.blit(self.frames_fondo[self.frame_actual], (0, 0))
         super().dibujar(pantalla)
 
 
@@ -112,9 +140,10 @@ class MenuPrincipal(Escena):
         self.listaPaneles = {}
         self.listaPaneles['INICIAL'] = PanelInicialGUI(self)
         self.panelActual = 'INICIAL'
+        self._transitioning = False  
 
     def update(self, tiempo_pasado):
-        pass
+        self.listaPaneles[self.panelActual].update(tiempo_pasado)
 
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
@@ -123,9 +152,14 @@ class MenuPrincipal(Escena):
         self.listaPaneles[self.panelActual].eventos(lista_eventos)
 
     def dibujar(self, pantalla):
-        self.listaPaneles[self.panelActual].dibujar(pantalla)
+        if self._transitioning:
+            pantalla.fill((0, 0, 0)) 
+        else:
+            self.listaPaneles[self.panelActual].dibujar(pantalla)
 
     def ejecutarJuego(self):
+        self._transitioning = True
+        run_cinematics(self.director.screen)
         juego = Juego(self.director)
         self.director.cambiarEscena(juego) 
 
