@@ -1,5 +1,6 @@
 import os
 import pygame
+from gestorAudio import GestorAudio
 
 
 ROOM2_DOOR_LINE_COL = ((209, 401), (209, 418))
@@ -24,6 +25,8 @@ class Room2Key:
 
 class Room2Event:
     def __init__(self, graphics_dir, collision_scale_down, room2_rect, map_size):
+        self.audio = GestorAudio()
+
         self.collision_scale_down = collision_scale_down
         self.room2_rect = room2_rect
 
@@ -108,6 +111,7 @@ class Room2Event:
                 player.hitbox.colliderect(self.key.rect)):
             self.key_collected = True
             self.door_locked = False
+            self.audio.reproducir_sonido("coger_item", self.audio.canal_accion)
             self.focus_door_timer_ms = self.focus_door_duration_ms
             player.controls_enabled = False
 

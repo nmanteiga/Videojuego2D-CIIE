@@ -1,4 +1,5 @@
 import pygame
+from gestorAudio import GestorAudio
 
 FONTES = {}
 
@@ -125,6 +126,7 @@ class TaboaCortar(Estacion):
 
     def __init__(self, rect_mapa):
         super().__init__("Táboa Cortar", rect_mapa)
+        self.audio = GestorAudio()
         self.progreso = 0
 
     def pode_recibir(self, ingrediente):
@@ -134,6 +136,7 @@ class TaboaCortar(Estacion):
         if (self.ingrediente_na_estacion and
                 self.ingrediente_na_estacion.estado == PATACA_ENTEIRA):
             self.progreso += 1
+            self.audio.reproducir_sonido("cortar", self.audio.canal_accion)
             if self.progreso >= self.PULSACIONS_NECESARIAS:
                 self.ingrediente_na_estacion.estado = PATACA_CORTADA
                 self.progreso = 0
@@ -157,6 +160,8 @@ class Fogon(Estacion):
 
     def __init__(self, rect_mapa):
         super().__init__("Fogón", rect_mapa)
+        self.audio = GestorAudio()
+        self.canal_hervir = None # Para poder reproducir o fogón en bucle
         self.tempo_acumulado = 0
         self.cocinando = False
 
@@ -169,6 +174,11 @@ class Fogon(Estacion):
         self.tempo_acumulado = 0
         self.cocinando = True
 
+        # O mixer usa un canal libre para o son de fervir.
+        # Este se usa en "reproducir_sonido" (así podese parar o son máis tarde):
+        self.canal_hervir = pygame.mixer.find_channel(True)
+        self.audio.reproducir_sonido("hervir", self.canal_hervir, loops = -1)
+
     def update(self, tempo_ms):
         if self.cocinando and self.ingrediente_na_estacion:
             estado = self.ingrediente_na_estacion.estado
@@ -177,6 +187,9 @@ class Fogon(Estacion):
                 if self.tempo_acumulado >= self.TEMPO_COCCION_MS:
                     self.ingrediente_na_estacion.estado = self.ACEPTA[estado]
                     self.cocinando = False
+                    if self.canal_hervir:
+                        self.canal_hervir.fadeout(200)
+                        self.canal_hervir = None
             else:
                 self.cocinando = False
 
@@ -199,6 +212,7 @@ class Cunca(Estacion):
 
     def __init__(self, rect_mapa):
         super().__init__("Cunca", rect_mapa)
+        self.audio = GestorAudio()
         self.ovo = None
         self.pataca_frita = None
         self.progreso_bater = 0
@@ -233,6 +247,7 @@ class Cunca(Estacion):
     def accion_x(self, xogador):
         if self.ovo and self.ovo.estado == OVO_ENTEIRO:
             self.progreso_bater += 1
+            self.audio.reproducir_sonido("batir", self.audio.canal_accion)
             if self.progreso_bater >= self.PULSACIONS_BATER:
                 self.ovo.estado = OVO_BATIDO
                 self.progreso_bater = 0
@@ -291,6 +306,7 @@ class Mostrador(Estacion):
 
 class XestorCocina:
     def __init__(self, xogador, posicions=None):
+        self.audio = GestorAudio()
         self.xogador = xogador
         self.man = None  
 
@@ -344,6 +360,7 @@ class XestorCocina:
         # Mostrador onde entregamos
         if isinstance(est, Mostrador):
             if self.man and self.man.estado == TORTILLA:
+                self.audio.reproducir_sonido("campana", self.audio.canal_accion)
                 est.recibir_entrega(self.man)
                 self.man = None
             return
@@ -351,27 +368,32 @@ class XestorCocina:
         # man chea -> intentar depositar
         if self.man is not None:
             if isinstance(est, Cunca) and est.pode_recibir(self.man):
+                self.audio.reproducir_sonido("dejar_item", self.audio.canal_accion) # Son ao deixar un ítem
                 est.recibir(self.man)
                 self.man = None
                 return
             if isinstance(est, Fogon) and est.pode_recibir(self.man):
+                self.audio.reproducir_sonido("dejar_item", self.audio.canal_accion)
                 est.depositar(self.man)
                 self.man = None
                 return
             if est.pode_recibir(self.man):
                 est.ingrediente_na_estacion = self.man
+                self.audio.reproducir_sonido("dejar_item", self.audio.canal_accion)
                 self.man = None
             return
 
         # man baleira -> intentar coller
         if est.pode_dar():
             if isinstance(est, FonteIngrediente):
+                self.audio.reproducir_sonido("coger_item", self.audio.canal_accion) # Son ao coller un ítem
                 self.man = est.dar_ingrediente()
             else:
                 self.man = est.ingrediente_na_estacion
                 est.ingrediente_na_estacion = None
                 if isinstance(est, Cunca):
                     est.mestura_lista = False
+                self.audio.reproducir_sonido("coger_item", self.audio.canal_accion)
 
     def accion_x(self):
         if self._estacion_preto is not None:

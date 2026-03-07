@@ -4,6 +4,7 @@ from PIL import Image
 from escena import Escena, ANCHO, ALTO
 from game import Juego, FONDO_IMG, GRAPHICS_FILE
 from text import run_cinematics
+from gestorAudio import GestorAudio
 
 HOME = os.path.dirname(__file__)
 ASSETS_FILE = os.path.join(HOME, "..", "assets")
@@ -141,6 +142,10 @@ class MenuPrincipal(Escena):
         self.listaPaneles['INICIAL'] = PanelInicialGUI(self)
         self.panelActual = 'INICIAL'
         self._transitioning = False  
+        self.audio = GestorAudio() # Audio
+
+        # Música del menú de inicio (temporalmente la de escape):
+        self.audio.reproducir_musica("escape")
 
     def update(self, tiempo_pasado):
         self.listaPaneles[self.panelActual].update(tiempo_pasado)
@@ -158,6 +163,8 @@ class MenuPrincipal(Escena):
             self.listaPaneles[self.panelActual].dibujar(pantalla)
 
     def ejecutarJuego(self):
+        self.audio.reproducir_sonido("click_menu_big", self.audio.canal_ui)
+        self.audio.detener_musica(500)
         self._transitioning = True
         run_cinematics(self.director.screen)
         juego = Juego(self.director)

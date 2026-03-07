@@ -2,6 +2,7 @@ import pygame
 import os
 from pygame.locals import *
 from escena import *
+from gestorAudio import GestorAudio, VOL_MUSICA
 
 # Rutas para el icono de pausa
 HOME = os.path.dirname(__file__)
@@ -17,6 +18,7 @@ class MenuPausa(Escena):
     def __init__(self, director):
         Escena.__init__(self, director)
         from menuInicio import BotonEstilizado, PanelGUI
+        self.audio = GestorAudio() # Audio
 
         class PanelPausaGUI(PanelGUI):
             def __init__(self, menu):
@@ -41,6 +43,7 @@ class MenuPausa(Escena):
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
             if evento.type == KEYDOWN and evento.key == K_ESCAPE:
+                self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
                 self.reanudarJuego()
             if evento.type == pygame.QUIT:
                 self.director.salirPrograma()
@@ -64,8 +67,12 @@ class MenuPausa(Escena):
         self.panel.dibujar(pantalla)
 
     def reanudarJuego(self):
+        self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
+        self.audio.cambiar_volumen_musica(VOL_MUSICA)
         self.director.salirEscena()
 
     def volverInicio(self):
         from menuInicio import MenuPrincipal
+        self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+        self.audio.detener_musica(fadeout = 0)
         self.director.cambiarEscena(MenuPrincipal(self.director))    

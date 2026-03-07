@@ -2,6 +2,7 @@ import pygame
 import sys
 import time
 import os
+from gestorAudio import GestorAudio
 
 HOME = os.path.dirname(__file__)
 FONT_FILE = os.path.join(HOME, "..", "assets", "fonts", "PressStart2P-Regular.ttf")
@@ -19,14 +20,16 @@ font = None
 BACKGROUND_IMG = None
 CHARACTER_IMG = None
 ITEM_IMG = None
+audio = None
 
 def init_cinematics(pantalla):
-    global screen, font, BACKGROUND_IMG
+    global screen, font, BACKGROUND_IMG, audio
     screen = pantalla
     font = pygame.font.Font(FONT_FILE, 14)
     # Cargar imagen inicial
     img = pygame.image.load(os.path.join(ASSETS_PATH, "graphics", "cinematica", "bus1.png")).convert()
     BACKGROUND_IMG = pygame.transform.scale(img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    audio = GestorAudio()
 
 # Function to change background image
 def set_background(image_path):
@@ -151,7 +154,7 @@ def display_text(text, x, y, font, color=WHITE, max_width=None):
             screen.blit(text_surface, (x, y + y_offset))
             y_offset += text_surface.get_height() + LINE_SPACING
 
-def show_dialogue(dialogue_list, font, color=WHITE):
+def show_dialogue(dialogue_list, font, color=WHITE, voz = "voz_narrador"):
     index = 0
     TEXTBOX_Y_OFFSET = 50
     TEXTBOX_HEIGHT = 100
@@ -209,8 +212,11 @@ def show_dialogue(dialogue_list, font, color=WHITE):
                         break
 
             if not skip and current_length < len(phrase):
+                if phrase[current_length] != " " and (current_length % 2 == 0):
+                    audio.canal_texto.stop()
+                    audio.reproducir_sonido(voz, audio.canal_texto)
                 current_length += 1
-                pygame.time.delay(30)  # Adjust speed here (milliseconds per character)
+                pygame.time.delay(30)  # Adjust speed here (milliseconds per character)``
             elif current_length >= len(phrase):
                 skip = False  # Reset skip for next phrase
                 # Wait for user to press SPACE to continue
@@ -246,7 +252,10 @@ dialogues3 = [
 ]
 
 dialogues3_jumpscare = [
-    "LÁZARO UNA TORTILLA PARA EL RUBIO ESTE",
+    "LÁZARO UNA TORTILLA PARA EL RUBIO ESTE"
+]
+
+dialogues3_tras_jumpscare = [
     "(Carlitos no es rubio)"
 ]
 
@@ -259,7 +268,10 @@ dialogues4_tortilla = [
 
 dialogues4_enfadado = [
     "¿Cómo que no tienes dinero?",
-    "¡¿?!",
+    "¡¿?!"
+]
+
+dialogues4_golpe = [
     "(Carlitos siente un duro golpe y la vista se le pone en negro)"
 ]
 
@@ -271,35 +283,43 @@ dialogue_transicion = [
 def run_cinematics(pantalla):
     init_cinematics(pantalla)
     
+    audio.reproducir_musica("parada_bus", -1, 1000)
     fade_in(screen) 
     show_dialogue(dialogues1, font, WHITE)
     fade_out(screen)
     set_background(os.path.join(ASSETS_PATH, "graphics", "cinematica", "facu1.png"))
     fade_in(screen)
     show_dialogue(dialogues2, font, WHITE)
+    audio.detener_musica(500)
     fade_out(screen)
     set_background(os.path.join(ASSETS_PATH, "graphics", "cinematica", "cafeta.png"))
     set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_normal.png"), scale=0.60)
+    audio.reproducir_musica("cafeteria", -1, 1000)
     fade_in(screen)
-    show_dialogue(dialogues3, font, WHITE)
+    show_dialogue(dialogues3, font, WHITE, "voz_michel")
     set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_jumpScare.png"), scale=0.75)
-    show_dialogue(dialogues3_jumpscare, font, WHITE)
+    show_dialogue(dialogues3_jumpscare, font, WHITE, "voz_michel")
+    show_dialogue(dialogues3_tras_jumpscare, font, WHITE)     
     clear_character()
     fade_out(screen)
     
     set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_normal.png"), scale=0.60)
     set_item(os.path.join(ASSETS_PATH, "graphics", "ui", "tortilla.png"), scale=0.5)
     fade_in(screen)
-    show_dialogue(dialogues4_tortilla, font, WHITE)
+    show_dialogue(dialogues4_tortilla, font, WHITE, "voz_michel")
     clear_item()
     clear_character()
     show_item_from_bottom(os.path.join(ASSETS_PATH, "graphics", "ui", "cartera_vacia.png"), scale=0.8, rise_speed=8, hold_time=2500)
     set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_enfadao.png"), scale=0.60)
-    show_dialogue(dialogues4_enfadado, font, WHITE)
+    show_dialogue(dialogues4_enfadado, font, WHITE, "voz_michel_grave")
+    show_dialogue(dialogues4_golpe, font, WHITE)
     clear_character()
-    fade_out(screen)  
-    
+    audio.reproducir_sonido("golpe_sarten")
     pygame.time.delay(500)
+    audio.detener_musica(500)
+    fade_out(screen)
+    
+    pygame.time.delay(1000)
     set_black_background()
     screen.fill(BLACK)
     pygame.display.flip()

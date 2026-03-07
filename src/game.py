@@ -6,6 +6,7 @@ from menuPausa import MenuPausa
 from sprtesheet import SpriteSheet
 from cocinado import XestorCocina
 from escena_room2 import Room2Event
+from gestorAudio import GestorAudio, VOL_MUSICA
 
 SCALE = 4  
 # ANCHO, ALTO = 800, 600 (Definidos en escena.py)
@@ -138,6 +139,7 @@ class Camara:
 class Player(pygame.sprite.Sprite):
     def __init__(self, mask_colision_mapa):
         super().__init__()
+        self.audio = GestorAudio()
         
         self.mask_colision_mapa = mask_colision_mapa
         self.colision_scale_down = COLISION_SCALE_DOWN
@@ -228,6 +230,14 @@ class Player(pygame.sprite.Sprite):
             magnitud = (dx**2 + dy**2) ** 0.5
             dx /= magnitud
             dy /= magnitud
+
+            # Al moverse, se reproduce el sonido de los pasos del personaje:
+            if not self.audio.canal_personaje.get_busy():
+                self.audio.reproducir_sonido("pasos", self.audio.canal_personaje)
+        else:
+            # Cuando el personaje se pare, se detiene el audio:
+            if self.audio.canal_personaje.get_busy():
+                self.audio.canal_personaje.stop()
         
         old_pos_x = self.pos_x
         self.pos_x += dx * self.velocidad
@@ -296,6 +306,10 @@ class Juego(Escena):
 
     def __init__(self, director):
         Escena.__init__(self, director)
+        self.audio = GestorAudio()
+
+        # Se reproduce la música de la cocina, donde se empieza:
+        self.audio.reproducir_musica("cocina")
         
         self.fondo = pygame.image.load(FONDO_IMG).convert_alpha()
         self.fondo = pygame.transform.scale(self.fondo, (ANCHO_MAPA, ALTO_MAPA))
@@ -331,6 +345,9 @@ class Juego(Escena):
             pygame.Rect(1280, 1910, 832, 660), # Sala del medio derecha
             pygame.Rect(0, 640, 832, 1280) # Laberinto de arriba izquierda
         ]
+
+        self.sala_actual = "cocina" # Para gestionar las salas (audio)
+
         self.room2_event = Room2Event(
             GRAPHICS_FILE,
             COLISION_SCALE_DOWN,
@@ -376,7 +393,31 @@ class Juego(Escena):
                 self.director.salirPrograma()
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
+                    self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                    self.audio.cambiar_volumen_musica(VOL_MUSICA / 2) # Se atenúa el volúmen de la música al pausar
                     self.director.apilarEscena(MenuPausa(self.director))
+    
+    # Se gestionan las salas en las que se encuentra el jugador (para audio, y quizá otros).
+    # De momento, sólo es necesario saber si el jugador se encuentra o no en la cocina:
+    def obtener_sala_actual(self):
+            pos = self.jugador.hitbox.center
+
+            if self.salas[0].collidepoint(pos):
+                return "cocina"
+            else:
+                return "fuera_de_cocina"
+            
+    def actualizar_sala(self):
+        nueva_sala = self.obtener_sala_actual()
+        if nueva_sala == self.sala_actual:
+            return
+        else:
+            if nueva_sala == "cocina":
+                self.audio.reproducir_musica("cocina")
+            else:
+                self.audio.reproducir_musica("escape")
+        
+        self.sala_actual = nueva_sala
 
     def update(self, tiempo_pasado):
         self.jugador.set_extra_collision_rects(self.room2_event.get_extra_collision_rects())
@@ -386,6 +427,9 @@ class Juego(Escena):
 
         self.camara.update(self.jugador, self.salas, focus_world_pos=focus_pos)
         self.cocina.update(tiempo_pasado)
+
+        self.actualizar_sala()
+
 
     def dibujar(self, pantalla):
         pantalla.fill((0, 0, 0))

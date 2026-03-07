@@ -10,7 +10,7 @@ class Director():
     def __init__(self):
         # Inicializamos la pantalla y el modo gráfico
         self.screen = pygame.display.set_mode((ANCHO, ALTO))
-        pygame.display.set_caption("Prueba :)")
+        pygame.display.set_caption("Scape From FIC")
 
         # Pila de escenas
         self.pila = []
