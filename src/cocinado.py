@@ -1,3 +1,4 @@
+import os
 import pygame
 from gestorAudio import GestorAudio
 
@@ -9,6 +10,7 @@ def _fonte(size, bold=False):
         FONTES[clave] = pygame.font.SysFont("Calibri", size, bold=bold)
     return FONTES[clave]
 
+# estados dos ingredientes
 PATACA_ENTEIRA = "pataca_enteira"
 PATACA_CORTADA = "pataca_cortada"
 PATACA_FRITA = "pataca_frita"
@@ -32,6 +34,28 @@ NOMES_INGREDIENTE = {
     None: "—",
 }
 
+_HIGHLIGHT_SCALE = 4
+_HIGHLIGHTS_CACHE = {}
+
+def _cargar_highlight(graphics_dir, nome):
+    if nome not in _HIGHLIGHTS_CACHE:
+        ruta = os.path.join(graphics_dir, "environments", nome)
+        img = pygame.image.load(ruta).convert_alpha()
+        w = img.get_width() * _HIGHLIGHT_SCALE
+        h = img.get_height() * _HIGHLIGHT_SCALE
+        _HIGHLIGHTS_CACHE[nome] = pygame.transform.scale(img, (w, h))
+    return _HIGHLIGHTS_CACHE[nome]
+
+def inicializar_highlights(graphics_dir):
+    for nome in (
+        "highlight_ovos.png",
+        "highlight_patacas.png",
+        "highlight_cortar.png",
+        "highlight_fritir.png",
+        "highlight_bol.png",
+        "highlight_prato.png",
+    ):
+        _cargar_highlight(graphics_dir, nome)
 
 class Ingrediente:
     def __init__(self, estado):
@@ -42,7 +66,6 @@ class Ingrediente:
 
     def nome(self):
         return NOMES_INGREDIENTE.get(self.estado, self.estado)
-
 
 class Estacion:
     RADIO_INTERACCION = 80
@@ -59,21 +82,15 @@ class Estacion:
         return ((cx - px)**2 + (cy - py)**2) ** 0.5
 
     def _dir_xogador(self, xogador):
-        base = xogador.last_action_base  
+        base    = xogador.last_action_base
         dx_sign = 1 if xogador.facing_right else -1
+        if base == 'up': return (0.0, -1.0)
+        if base == 'down': return (0.0,  1.0)
+        if base == 'r': return (float(dx_sign), 0.0)
+        if base == 'dup': return (dx_sign / 1.4142,  1.0 / 1.4142)
+        if base == 'ddown': return (dx_sign / 1.4142, -1.0 / 1.4142)
+        return (0.0, 1.0)
 
-        if base == 'up':
-            return (0.0, -1.0)
-        elif base == 'down':
-            return (0.0, 1.0)
-        elif base == 'r':
-            return (float(dx_sign), 0.0)
-        elif base == 'dup':   
-            return (dx_sign / 1.4142, 1.0 / 1.4142)
-        elif base == 'ddown': 
-            return (dx_sign / 1.4142, -1.0 / 1.4142)
-        return (0.0, 1.0)    
-    
     def xogador_cara_a(self, xogador):
         cx, cy = self.rect.center
         px, py = xogador.hitbox.center
@@ -81,8 +98,7 @@ class Estacion:
         dist = (ex**2 + ey**2) ** 0.5
         if dist == 0:
             return True
-        ex /= dist
-        ey /= dist
+        ex /= dist; ey /= dist
         dx, dy = self._dir_xogador(xogador)
         return dx * ex + dy * ey >= self.COS_ANGULO_MIN
 
@@ -90,35 +106,26 @@ class Estacion:
         return (self.distancia_a(xogador) <= self.RADIO_INTERACCION and
                 self.xogador_cara_a(xogador))
 
-    def pode_recibir(self, ingrediente):
-        return False
+    def pode_recibir(self, ingrediente): return False
+    def pode_dar(self): return self.ingrediente_na_estacion is not None
+    def accion_x(self, xogador): pass
+    def update(self, tempo_ms): pass
 
-    def pode_dar(self):
-        return self.ingrediente_na_estacion is not None
-
-    def accion_x(self, xogador):
-        pass
-
-    def update(self, tempo_ms):
-        pass
-
-    def dibujar(self, pantalla, camara, resaltada=False):
-        pass 
-
+    def dibujar(self, pantalla, camara, highlight_nome=None):
+        """Debúxase o highlight se se pasa un nome de ficheiro."""
+        if highlight_nome and highlight_nome in _HIGHLIGHTS_CACHE:
+            surf = _HIGHLIGHTS_CACHE[highlight_nome]
+            mapa_rect = pygame.Rect(0, 0, surf.get_width(), surf.get_height())
+            pantalla.blit(surf, camara.aplicar_rect(mapa_rect))
 
 class FonteIngrediente(Estacion):
     def __init__(self, nome, rect_mapa, tipo_ingrediente):
         super().__init__(nome, rect_mapa)
         self.tipo = tipo_ingrediente
 
-    def pode_dar(self):
-        return True
-
-    def dar_ingrediente(self):
-        return Ingrediente(self.tipo)
-
-    def pode_recibir(self, ingrediente):
-        return False
+    def pode_dar(self): return True
+    def dar_ingrediente(self): return Ingrediente(self.tipo)
+    def pode_recibir(self, i): return False
 
 
 class Neveira(FonteIngrediente):
@@ -151,7 +158,8 @@ class TaboaCortar(Estacion):
                 self.ingrediente_na_estacion.estado = PATACA_CORTADA
                 self.progreso = 0
 
-    def dibujar(self, pantalla, camara, resaltada=False):
+    def dibujar(self, pantalla, camara, highlight_nome=None):
+        super().dibujar(pantalla, camara, highlight_nome)
         if (self.ingrediente_na_estacion and
                 self.ingrediente_na_estacion.estado == PATACA_ENTEIRA):
             rect_cam = camara.aplicar_rect(self.rect)
@@ -162,7 +170,6 @@ class TaboaCortar(Estacion):
 
 class Fogon(Estacion):
     TEMPO_COCCION_MS = 10_000
-
     ACEPTA = {
         PATACA_CORTADA: PATACA_FRITA,
         MESTURA_TORTILLA: TORTILLA,
@@ -205,7 +212,8 @@ class Fogon(Estacion):
             return False
         return self.ingrediente_na_estacion.estado in (PATACA_FRITA, TORTILLA)
 
-    def dibujar(self, pantalla, camara, resaltada=False):
+    def dibujar(self, pantalla, camara, highlight_nome=None):
+        super().dibujar(pantalla, camara, highlight_nome)
         if self.cocinando and self.ingrediente_na_estacion:
             rect_cam = camara.aplicar_rect(self.rect)
             progreso = min(self.tempo_acumulado / self.TEMPO_COCCION_MS, 1.0)
@@ -226,19 +234,14 @@ class Cunca(Estacion):
         self.mestura_lista = False
 
     def pode_recibir(self, ingrediente):
-        if self.mestura_lista:
-            return False
-        if ingrediente.estado == OVO_ENTEIRO and self.ovo is None:
-            return True
-        if ingrediente.estado == PATACA_FRITA and self.pataca_frita is None:
-            return True
+        if self.mestura_lista: return False
+        if ingrediente.estado == OVO_ENTEIRO and self.ovo is None: return True
+        if ingrediente.estado == PATACA_FRITA and self.pataca_frita is None: return True
         return False
 
     def recibir(self, ingrediente):
-        if ingrediente.estado == OVO_ENTEIRO:
-            self.ovo = ingrediente
-        elif ingrediente.estado == PATACA_FRITA:
-            self.pataca_frita = ingrediente
+        if   ingrediente.estado == OVO_ENTEIRO: self.ovo = ingrediente
+        elif ingrediente.estado == PATACA_FRITA: self.pataca_frita = ingrediente
         self.comprobar_mestura()
 
     def comprobar_mestura(self):
@@ -248,8 +251,7 @@ class Cunca(Estacion):
             self.ovo = None
             self.pataca_frita = None
 
-    def pode_dar(self):
-        return self.mestura_lista
+    def pode_dar(self): return self.mestura_lista
 
     def accion_x(self, xogador):
         if self.ovo and self.ovo.estado == OVO_ENTEIRO:
@@ -260,7 +262,8 @@ class Cunca(Estacion):
                 self.progreso_bater = 0
                 self.comprobar_mestura()
 
-    def dibujar(self, pantalla, camara, resaltada=False):
+    def dibujar(self, pantalla, camara, highlight_nome=None):
+        super().dibujar(pantalla, camara, highlight_nome)
         if self.ovo and self.ovo.estado == OVO_ENTEIRO:
             rect_cam = camara.aplicar_rect(self.rect)
             progreso = self.progreso_bater / self.PULSACIONS_BATER
@@ -290,33 +293,32 @@ class Mostrador(Estacion):
         if self.callback_punto:
             self.callback_punto()
 
-    def dibujar(self, pantalla, camara, resaltada=False):
-        pass  
-
 
 class XestorCocina:
-    def __init__(self, xogador, posicions=None):
+    def __init__(self, xogador, graphics_dir, posicions=None):
         self.audio = GestorAudio()
         self.xogador = xogador
         self.man = None
 
+        inicializar_highlights(graphics_dir)
+
         pos = posicions or {
-            "neveira":       pygame.Rect( 16, 2650, 70, 100),
+            "neveira": pygame.Rect( 16, 2650, 70, 100),
             "caixa_patacas": pygame.Rect(720, 3050, 50,  50),
-            "taboa":         pygame.Rect(580, 3100, 50,  50),
-            "Fogon":         pygame.Rect(460, 2640, 50,  40),
-            "cunca":         pygame.Rect(390, 3100, 50,  50),
-            "prato":         pygame.Rect(330, 2640, 50,  40),
-            "mostrador":     pygame.Rect( 65, 3150, 60,  40),
+            "taboa": pygame.Rect(580, 3100, 50,  50),
+            "Fogon": pygame.Rect(460, 2640, 50,  40),
+            "cunca": pygame.Rect(390, 3100, 50,  50),
+            "prato": pygame.Rect(330, 2640, 50,  40),
+            "mostrador": pygame.Rect( 65, 3150, 60,  40),
         }
 
-        self.neveira       = Neveira(pos["neveira"])
+        self.neveira = Neveira(pos["neveira"])
         self.caixa_patacas = CaixaPatacas(pos["caixa_patacas"])
-        self.taboa         = TaboaCortar(pos["taboa"])
-        self.Fogon         = Fogon(pos["Fogon"])
-        self.cunca         = Cunca(pos["cunca"])
-        self.prato         = Prato(pos["prato"])
-        self.mostrador     = Mostrador(pos["mostrador"], self.sumar_punto)
+        self.taboa = TaboaCortar(pos["taboa"])
+        self.Fogon = Fogon(pos["Fogon"])
+        self.cunca = Cunca(pos["cunca"])
+        self.prato = Prato(pos["prato"])
+        self.mostrador = Mostrador(pos["mostrador"], self.sumar_punto)
 
         self.estacions = [
             self.neveira, self.caixa_patacas,
@@ -326,14 +328,15 @@ class XestorCocina:
 
         self.puntos = 0
         self._estacion_preto = None
+        self.primeira_tortilla_feita = False
 
     def sumar_punto(self):
         self.puntos += 1
+        self.primeira_tortilla_feita = True
         print(f"[Cocina] Tortilla entregada! Puntos: {self.puntos}")
 
     def get_estacion_preto(self):
-        preto = None
-        menor = float("inf")
+        preto, menor = None, float("inf")
         for est in self.estacions:
             if est.xogador_cerca(self.xogador):
                 d = est.distancia_a(self.xogador)
@@ -342,12 +345,71 @@ class XestorCocina:
                     preto = est
         return preto
 
+    #loxica para os highlights que fan de guia para a primeira tortilla
+    def _highlight_activo(self):
+        if self.primeira_tortilla_feita:
+            return (None, None)
+
+        man = self.man
+        taboa = self.taboa
+        fogon = self.Fogon
+        cunca = self.cunca
+        prato = self.prato
+
+        if (fogon.ingrediente_na_estacion and
+                fogon.ingrediente_na_estacion.estado in (MESTURA_TORTILLA, TORTILLA)):
+            return (fogon, "highlight_fritir.png")
+
+        if man and man.estado == MESTURA_TORTILLA:
+            return (fogon, "highlight_fritir.png")
+
+        if cunca.mestura_lista:
+            return (fogon, "highlight_fritir.png")
+
+        if man and man.estado == PATACA_FRITA:
+            if cunca.ovo and cunca.ovo.estado == OVO_BATIDO:
+                return (cunca, "highlight_bol.png")
+            return (prato, "highlight_prato.png")
+
+        if (cunca.ovo and cunca.ovo.estado == OVO_BATIDO and not cunca.pataca_frita):
+            return (prato, "highlight_prato.png")
+
+        if man and man.estado == OVO_ENTEIRO:
+            return (cunca, "highlight_bol.png")
+
+        if cunca.ovo and cunca.ovo.estado == OVO_ENTEIRO:
+            return (cunca, "highlight_bol.png")
+
+        if (prato.ingrediente_na_estacion and
+                prato.ingrediente_na_estacion.estado == PATACA_FRITA and
+                cunca.ovo is None):
+            return (self.neveira, "highlight_ovos.png")
+
+        if (fogon.ingrediente_na_estacion and
+                fogon.ingrediente_na_estacion.estado == PATACA_FRITA and
+                not fogon.cocinando):
+            return (prato, "highlight_prato.png")
+
+        if (fogon.cocinando and fogon.ingrediente_na_estacion and
+                fogon.ingrediente_na_estacion.estado == PATACA_CORTADA):
+            return (fogon, "highlight_fritir.png")
+
+        if man and man.estado == PATACA_CORTADA:
+            return (fogon, "highlight_fritir.png")
+
+        if taboa.ingrediente_na_estacion:
+            return (taboa, "highlight_cortar.png")
+
+        if man and man.estado == PATACA_ENTEIRA:
+            return (taboa, "highlight_cortar.png")
+
+        return (self.caixa_patacas, "highlight_patacas.png")
+
     def accion_e(self):
         est = self._estacion_preto
         if est is None:
             return
 
-        # Mostrador: entregar tortilla
         if isinstance(est, Mostrador):
             if self.man and self.man.estado == TORTILLA:
                 self.audio.reproducir_sonido("campana", self.audio.canal_accion)
@@ -355,11 +417,10 @@ class XestorCocina:
                 self.man = None
             return
 
-        # Man chea -> intentar depositar
         if self.man is not None:
             if isinstance(est, FonteIngrediente) and self.man.estado == est.tipo:
                 self.audio.reproducir_sonido("dejar_item", self.audio.canal_accion)
-                self.man = None #para devolver á fonte simplemente descartamos o ingrediente
+                self.man = None
                 return
             if isinstance(est, Cunca) and est.pode_recibir(self.man):
                 self.audio.reproducir_sonido("dejar_item", self.audio.canal_accion)
@@ -377,7 +438,6 @@ class XestorCocina:
                 self.man = None
             return
 
-        # Man baleira -> intentar coller
         if est.pode_dar():
             if isinstance(est, FonteIngrediente):
                 self.audio.reproducir_sonido("coger_item", self.audio.canal_accion)
@@ -396,19 +456,35 @@ class XestorCocina:
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
             if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_e:
-                    self.accion_e()
-                elif evento.key == pygame.K_x:
-                    self.accion_x()
+                if evento.key == pygame.K_e:   self.accion_e()
+                elif evento.key == pygame.K_x: self.accion_x()
 
     def update(self, tempo_ms):
         self._estacion_preto = self.get_estacion_preto()
         for est in self.estacions:
             est.update(tempo_ms)
 
+    _HIGHLIGHTS_BAIXO_FRENTE = {
+        "highlight_bol.png",
+        "highlight_cortar.png",
+        "highlight_patacas.png",
+    }
+
+    def dibujar_highlight(self, pantalla, camara):
+        est_guia, hl_nome = self._highlight_activo()
+        if est_guia is not None and hl_nome not in self._HIGHLIGHTS_BAIXO_FRENTE:
+            est_guia.dibujar(pantalla, camara, highlight_nome=hl_nome)
+
+    def dibujar_highlight_frente(self, pantalla, camara):
+        est_guia, hl_nome = self._highlight_activo()
+        if est_guia is not None and hl_nome in self._HIGHLIGHTS_BAIXO_FRENTE:
+            est_guia.dibujar(pantalla, camara, highlight_nome=hl_nome)
+
     def dibujar(self, pantalla, camara):
+        #para as barras de progreso
         for est in self.estacions:
-            est.dibujar(pantalla, camara, resaltada=(est is self._estacion_preto))
+            est.dibujar(pantalla, camara)
+
         self.dibujar_hud(pantalla)
 
     def dibujar_hud(self, pantalla):
@@ -418,7 +494,7 @@ class XestorCocina:
         pantalla.blit(txt_puntos, (10, 10))
 
         nome_man = self.man.nome() if self.man else "Baleira"
-        txt_man = fonte.render(f"Man: {nome_man}", True, COR_XOGADOR_HUD)
+        txt_man  = fonte.render(f"Man: {nome_man}", True, COR_XOGADOR_HUD)
         pantalla.blit(txt_man, (10, 35))
 
         if self._estacion_preto:
