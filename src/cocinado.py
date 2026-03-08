@@ -329,11 +329,13 @@ class XestorCocina:
         self.puntos = 0
         self._estacion_preto = None
         self.primeira_tortilla_feita = False
+        self.deuda = 3.00
 
     def sumar_punto(self):
         self.puntos += 1
         self.primeira_tortilla_feita = True
-        print(f"[Cocina] Tortilla entregada! Puntos: {self.puntos}")
+        self.deuda = max(0.0, self.deuda - 0.02)
+        print(f"[Cocina] Tortilla entregada! Puntos: {self.puntos} | Deuda: {self.deuda:.2f}€")
 
     def get_estacion_preto(self):
         preto, menor = None, float("inf")
@@ -490,16 +492,19 @@ class XestorCocina:
     def dibujar_hud(self, pantalla):
         fonte = _fonte(20, bold=True)
 
+        txt_deuda = fonte.render(f"DEUDA: {self.deuda:.2f}€", True, (220, 40, 40))
+        pantalla.blit(txt_deuda, (10, 10))
+
         txt_puntos = fonte.render(f"Tortillas: {self.puntos}", True, (255, 215, 0))
-        pantalla.blit(txt_puntos, (10, 10))
+        pantalla.blit(txt_puntos, (10, 35))
 
         nome_man = self.man.nome() if self.man else "Baleira"
         txt_man  = fonte.render(f"Man: {nome_man}", True, COR_XOGADOR_HUD)
-        pantalla.blit(txt_man, (10, 35))
+        pantalla.blit(txt_man, (10, 60))
 
         if self._estacion_preto:
             txt_est = fonte.render(
                 f"[E] {self._estacion_preto.nome}  [X] Accion",
                 True, (200, 255, 200)
             )
-            pantalla.blit(txt_est, (10, 60))
+            pantalla.blit(txt_est, (10, 85))
