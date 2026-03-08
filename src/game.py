@@ -367,12 +367,11 @@ class Juego(Escena):
 
         self.cocina = XestorCocina(self.jugador)
 
-        self.zona_pizarra = pygame.Rect(1919, 2086, 80, 80) #pulsar e para interactuar con la pizarra
-        self.pizarra_resuelta = False  # <--- NUEVO: Control de estado
+        self.zona_pizarra = pygame.Rect(1919, 2086, 80, 80) #pulsar e para interactuar coa pizarra
+        self.pizarra_resuelta = False  #control de estado
 
-        # ---> NUEVO: Bloqueo de la puerta del aula <---
-        # OJO: Tendrás que ajustar estas coordenadas (1250, 2000) a donde esté tu puerta real del aula
-        self.puerta_aula = pygame.Rect(1245, 2126, 60, 150) 
+        #bloqueo da porta da aula ata resolver a pizarra
+        self.puerta_aula = pygame.Rect(1245, 2126, 60, 150)
         self.aula_bloqueada = False
 
         self._render_surf = pygame.Surface(
@@ -405,16 +404,16 @@ class Juego(Escena):
                     self.audio.cambiar_volumen_musica(VOL_MUSICA / 2) # Se atenúa el volúmen de la música al pausar
                     self.director.apilarEscena(MenuPausa(self.director))
 
-                # --- INTERACCIÓN PIZARRA ---
+                #pizarra
                 if evento.key in [pygame.K_e, pygame.K_x]:
-                    # NUEVO: Condición 'not self.pizarra_resuelta' para que no se abra más de una vez
+                    #condición 'not self.pizarra_resuelta' para que unha vez resuelta a pizarra, non se poida volver a interactuar con ela
                     if not self.pizarra_resuelta and self.zona_pizarra.colliderect(self.jugador.hitbox):
                         from escena_pizarra import EscenaPizarra
                         self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
                         
-                        # Patrón Callback: Le pasamos 'self.superar_pizarra' a la escena
+                        #patrón Callback: pasamos 'self.superar_pizarra' a escena
                         escena_pizz = EscenaPizarra(self.director, self.superar_pizarra)
-                        self.director.apilarEscena(escena_pizz)     
+                        self.director.apilarEscena(escena_pizz)
     
     # Se gestionan las salas en las que se encuentra el jugador (para audio, y quizá otros).
     # De momento, sólo es necesario saber si el jugador se encuentra o no en la cocina:
@@ -439,26 +438,28 @@ class Juego(Escena):
         self.sala_actual = nueva_sala
 
     def superar_pizarra(self):
-        """Callback que se ejecuta cuando el jugador acierta la pregunta."""
+        #se executa unha vez o xogador resolva a pizarra
         self.pizarra_resuelta = True
         
-        # Aprovechamos el sistema de Room2Event que ya tienes programado.
-        # Simulamos que ha "cogido la llave" resolviendo la pizarra,
-        # lo que automáticamente desbloquea la puerta y apaga el evento de oscuridad.
-        self.room2_event.key_collected = True
-        self.room2_event.door_locked = False
-        print("¡Test superado! La puerta se ha desbloqueado.")    
+        #print("¡Test superado! La puerta se ha desbloqueado.")  
 
     def update(self, tiempo_pasado):
-        print(f"Posición de Carlitos -> X: {self.jugador.hitbox.x} | Y: {self.jugador.hitbox.y}")
+        #print(f"Posición de Carlitos -> X: {self.jugador.hitbox.x} | Y: {self.jugador.hitbox.y}") #debuggeo
 
-        # 1. Comprobar si Carlitos está dentro del aula (salas[1]) y el test no está resuelto
-        if self.salas[1].collidepoint(self.jugador.hitbox.center) and not self.pizarra_resuelta:
+        #comproba se o xogador está na aula
+        en_aula = self.salas[1].collidepoint(self.jugador.hitbox.center)
+        
+        #para evitar que quede encerrado carlitos na porta
+        paso_la_puerta = self.jugador.hitbox.centerx > (self.puerta_aula.right + 50)
+
+        #se está na aula, cruzou a porta e non resolveu a pizarra
+        if en_aula and paso_la_puerta and not self.pizarra_resuelta:
             self.aula_bloqueada = True
-        else:
+        #se xa a resolveu ou saíu da aula
+        elif self.pizarra_resuelta or not en_aula:
             self.aula_bloqueada = False
 
-        # 2. Actualizar las colisiones extra (Añadimos la puerta si está bloqueada)
+        #actualizar as colisiones extra, engade a porta se bloqueada
         colisiones_extra = self.room2_event.get_extra_collision_rects()
         if self.aula_bloqueada:
             colisiones_extra.append(self.puerta_aula)
@@ -501,6 +502,14 @@ class Juego(Escena):
                 self.camara.aplicar_rect(self.colision_debug_overlay.get_rect())
             )
             self.colision_debug_overlay.set_alpha(80)
+
+            #puerta aula tipo test (AZUL)
+            rect_cam_puerta = self.camara.aplicar_rect(self.puerta_aula)
+            pygame.draw.rect(self._render_surf, (0, 0, 255), rect_cam_puerta, 3)
+            
+            #zona para pulsar a E da pizarra (ROJO)
+            rect_cam_pizarra = self.camara.aplicar_rect(self.zona_pizarra)
+            pygame.draw.rect(self._render_surf, (255, 0, 0), rect_cam_pizarra, 3)
 
         self.room2_event.draw_light_overlay(self._render_surf, self.camara, self.jugador)
 
