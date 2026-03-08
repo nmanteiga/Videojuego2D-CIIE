@@ -22,6 +22,24 @@ CHARACTER_IMG = None
 ITEM_IMG = None
 audio = None
 
+#excepción para saltar cinemáticas
+class SaltarCinematica(Exception):
+    pass
+
+def check_skip(): #comproba se pulsamos ESC para saltar a cinemática
+    pygame.event.pump()
+    teclas = pygame.key.get_pressed()
+    if teclas[pygame.K_ESCAPE]:
+        raise SaltarCinematica()
+    
+def tempo_espera(ms): #sustituto de pygame.time.delay
+    tiempo_fin = pygame.time.get_ticks() + ms
+    while pygame.time.get_ticks() < tiempo_fin:
+        check_skip()
+        pygame.time.delay(10)
+
+
+
 def init_cinematics(pantalla):
     global screen, font, BACKGROUND_IMG, audio
     screen = pantalla
@@ -79,7 +97,7 @@ def fade_in(surface, speed=4):
         surface.blit(BACKGROUND_IMG, (0, 0))
         surface.blit(fade, (0, 0))
         pygame.display.flip()
-        pygame.time.delay(10)
+        tempo_espera(10)
 
 def fade_out(surface, speed=4):
     fade = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -89,7 +107,7 @@ def fade_out(surface, speed=4):
         surface.blit(BACKGROUND_IMG, (0, 0))
         surface.blit(fade, (0, 0))
         pygame.display.flip()
-        pygame.time.delay(10)
+        tempo_espera(10)
 
 def show_item_from_bottom(image_path, scale=1, rise_speed=5, hold_time=2000):
     img = pygame.image.load(image_path).convert_alpha()
@@ -112,13 +130,13 @@ def show_item_from_bottom(image_path, scale=1, rise_speed=5, hold_time=2000):
         screen.blit(item, (item_x, current_y))
         pygame.display.flip()
         current_y -= rise_speed
-        pygame.time.delay(10)
+        tempo_espera(10)
     
     # Mantener en posición final
     screen.blit(BACKGROUND_IMG, (0, 0))
     screen.blit(item, (item_x, final_y))
     pygame.display.flip()
-    pygame.time.delay(hold_time)
+    tempo_espera(hold_time)
 
 def wrap_text(text, font, max_width):
     words = text.split(' ')
@@ -201,6 +219,9 @@ def show_dialogue(dialogue_list, font, color=WHITE, voz = "voz_narrador"):
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        raise SaltarCinematica()
+                    
                     if event.key == pygame.K_SPACE:
                         if current_length < len(phrase):
                             # Skip to full phrase
@@ -216,11 +237,14 @@ def show_dialogue(dialogue_list, font, color=WHITE, voz = "voz_narrador"):
                     audio.canal_texto.stop()
                     audio.reproducir_sonido(voz, audio.canal_texto)
                 current_length += 1
-                pygame.time.delay(30)  # Adjust speed here (milliseconds per character)``
+                tempo_espera(30)  # Adjust speed here (milliseconds per character)``
             elif current_length >= len(phrase):
                 skip = False  # Reset skip for next phrase
                 # Wait for user to press SPACE to continue
                 # (Handled in event loop above)
+
+                check_skip()
+                pygame.time.delay(10)
 
 def draw_text_box(y_offset, width=SCREEN_WIDTH-40, height=100, color=BLACK):
     # Estilo como los botones del menú de inicio
@@ -282,49 +306,63 @@ dialogue_transicion = [
 
 def run_cinematics(pantalla):
     init_cinematics(pantalla)
-    
-    audio.reproducir_musica("parada_bus", -1, 1000)
-    fade_in(screen) 
-    show_dialogue(dialogues1, font, WHITE)
-    fade_out(screen)
-    set_background(os.path.join(ASSETS_PATH, "graphics", "cinematica", "facu1.png"))
-    fade_in(screen)
-    show_dialogue(dialogues2, font, WHITE)
-    audio.detener_musica(500)
-    fade_out(screen)
-    set_background(os.path.join(ASSETS_PATH, "graphics", "cinematica", "cafeta.png"))
-    set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_normal.png"), scale=0.60)
-    audio.reproducir_musica("cafeteria", -1, 1000)
-    fade_in(screen)
-    show_dialogue(dialogues3, font, WHITE, "voz_michel")
-    set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_jumpScare.png"), scale=0.75)
-    show_dialogue(dialogues3_jumpscare, font, WHITE, "voz_michel")
-    show_dialogue(dialogues3_tras_jumpscare, font, WHITE)     
-    clear_character()
-    fade_out(screen)
-    
-    set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_normal.png"), scale=0.60)
-    set_item(os.path.join(ASSETS_PATH, "graphics", "ui", "tortilla.png"), scale=0.5)
-    fade_in(screen)
-    show_dialogue(dialogues4_tortilla, font, WHITE, "voz_michel")
-    clear_item()
-    clear_character()
-    show_item_from_bottom(os.path.join(ASSETS_PATH, "graphics", "ui", "cartera_vacia.png"), scale=0.8, rise_speed=8, hold_time=2500)
-    set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_enfadao.png"), scale=0.60)
-    show_dialogue(dialogues4_enfadado, font, WHITE, "voz_michel_grave")
-    show_dialogue(dialogues4_golpe, font, WHITE)
-    clear_character()
-    audio.reproducir_sonido("golpe_sarten")
-    pygame.time.delay(500)
-    audio.detener_musica(500)
-    fade_out(screen)
-    
-    pygame.time.delay(1000)
-    set_black_background()
-    screen.fill(BLACK)
-    pygame.display.flip()
-    show_dialogue(dialogue_transicion, font, WHITE)
-    pygame.event.clear()
+
+    try:
+        audio.reproducir_musica("parada_bus", -1, 1000)
+        fade_in(screen) 
+        show_dialogue(dialogues1, font, WHITE)
+        fade_out(screen)
+        set_background(os.path.join(ASSETS_PATH, "graphics", "cinematica", "facu1.png"))
+        fade_in(screen)
+        show_dialogue(dialogues2, font, WHITE)
+        audio.detener_musica(500)
+        fade_out(screen)
+        set_background(os.path.join(ASSETS_PATH, "graphics", "cinematica", "cafeta.png"))
+        set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_normal.png"), scale=0.60)
+        audio.reproducir_musica("cafeteria", -1, 1000)
+        fade_in(screen)
+        show_dialogue(dialogues3, font, WHITE, "voz_michel")
+        set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_jumpScare.png"), scale=0.75)
+        show_dialogue(dialogues3_jumpscare, font, WHITE, "voz_michel")
+        show_dialogue(dialogues3_tras_jumpscare, font, WHITE)     
+        clear_character()
+        fade_out(screen)
+        
+        set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_normal.png"), scale=0.60)
+        set_item(os.path.join(ASSETS_PATH, "graphics", "ui", "tortilla.png"), scale=0.5)
+        fade_in(screen)
+        show_dialogue(dialogues4_tortilla, font, WHITE, "voz_michel")
+        clear_item()
+        clear_character()
+        show_item_from_bottom(os.path.join(ASSETS_PATH, "graphics", "ui", "cartera_vacia.png"), scale=0.8, rise_speed=8, hold_time=2500)
+        set_character(os.path.join(ASSETS_PATH, "graphics", "characters", "míchel", "michel_enfadao.png"), scale=0.60)
+        show_dialogue(dialogues4_enfadado, font, WHITE, "voz_michel_grave")
+        show_dialogue(dialogues4_golpe, font, WHITE)
+        clear_character()
+        audio.reproducir_sonido("golpe_sarten")
+        tempo_espera(500)
+        audio.detener_musica(500)
+        fade_out(screen)
+        
+        tempo_espera(1000)
+        set_black_background()
+        screen.fill(BLACK)
+        pygame.display.flip()
+        show_dialogue(dialogue_transicion, font, WHITE)
+
+    except SaltarCinematica:
+        #se pulsamos ESC, saltamos o anterior e limpamos elementos para evitar que queden en pantalla
+        audio.detener_musica(100)
+        audio.canal_texto.stop()
+        clear_character()
+        clear_item()
+        set_black_background()
+        screen.fill(BLACK)
+        pygame.display.flip()
+        
+    finally:
+        #limpamos eventos para evitar que queden acumulados e afecten ao xogo, sempre chegamos aquí ao finalizar a cinemática, sexa por completala ou por saltala
+        pygame.event.clear()
 
 # Solo ejecutar si se llama directamente (para pruebas)
 if __name__ == "__main__":
