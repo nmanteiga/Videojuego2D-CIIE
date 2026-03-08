@@ -59,8 +59,8 @@ class GestorAudio:
         self.cargar_sonido("golpe_sarten", os.path.join(SFX_FILE, "golpe_sarten.wav")) # Cutscene inicial
 
         # Diccionario de música. La música no se carga directamente:
-        self.musica["cocina"] = os.path.join(MUSIC_FILE, "cocina.mp3")
-        self.musica["escape"] = os.path.join(MUSIC_FILE, "escape.mp3")
+        self.musica["cocina"] = os.path.join(MUSIC_FILE, "Cocina.mp3")
+        self.musica["escape"] = os.path.join(MUSIC_FILE, "Escape.mp3")
         self.musica["cafeteria"] = os.path.join(MUSIC_FILE, "ambiente_cafeteria.mp3")
         self.musica["parada_bus"] = os.path.join(MUSIC_FILE, "ambiente_parada_bus.mp3")
 
