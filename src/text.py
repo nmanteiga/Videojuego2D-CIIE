@@ -265,7 +265,7 @@ dialogues1 = [
     "Donde los autobuses siempre van o vacíos o llevan a facultades enteras dentro..."
 ]
 dialogues2 = [
-    "Carlitos (por alguna razón) estaba muy emocionado de empezar su primer año de facultad...",
+    "Carlitos, (por alguna razón) estaba muy emocionado de empezar su primer año de facultad...",
     "Sin embargo...",
     "No tenía ni idea de lo que su destino le depararía..."
 ]
