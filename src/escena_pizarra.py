@@ -11,9 +11,7 @@ COLOR_CORRECTO = (100, 255, 100)
 COLOR_INCORRECTO = (255, 100, 100) 
 
 class OpcionTest:
-    """
-    Patrón Componente: Cada opción gestiona su propio estado, lógica (update) y renderizado (dibujar).
-    """
+    #patrón Componente: cada opción xestiona o seu propio estado, update e dibujar.
     def __init__(self, letra, texto, y, fuente, es_correcta=False):
         self.letra = letra
         self.texto_str = texto
@@ -102,9 +100,6 @@ class EscenaPizarra(Escena):
         if opcion_seleccionada.es_correcta:
             opcion_seleccionada.estado = "CORRECTO"
             self.audio.reproducir_sonido("campana", self.audio.canal_ui)
-
-            if self.callback_acierto:
-                self.callback_acierto()
         else:
             opcion_seleccionada.estado = "INCORRECTO"
             self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
@@ -118,13 +113,24 @@ class EscenaPizarra(Escena):
 
         #se xa se respondeu, esperamos 2 segundos e sacamos da pila a escena para volver ao xogo
         if self.respondido and pygame.time.get_ticks() - self.tiempo_salida > 2000:
-            self.director.salirEscena()
+            self.director.salirEscena() #fechamos a ventana da pizarra
+
+            #lanzamos diálogo logo de fechar
+            for opcion in self.opciones:
+                if opcion.estado == "CORRECTO" and self.callback_acierto:
+                    self.callback_acierto() #arranca diálogo
 
     def dibujar(self, pantalla):
-        #debuxamos a escena anterior (o xogo) con un filtro escuro por riba, para dar a sensación de menú
-        if len(self.director.pila) >= 2:
-            escena_anterior = self.director.pila[-2]
-            escena_anterior.dibujar(pantalla)
+        #sistema anti bucles
+        if self in self.director.pila:
+            #se seguimos na pila, debuxamos o que ha xusto debaixo
+            indice_actual = self.director.pila.index(self)
+            if indice_actual > 0:
+                escena_anterior = self.director.pila[indice_actual - 1]
+                escena_anterior.dibujar(pantalla)
+        elif len(self.director.pila) > 0:
+            #se xa o sacaron da pila no update(), debuxamos a cima actual, o xogo
+            self.director.pila[-1].dibujar(pantalla)    
 
         #filtro oscuro semitransparente
         overlay = pygame.Surface((ANCHO, ALTO), pygame.SRCALPHA)

@@ -1,6 +1,7 @@
 import pygame
 import sys
 import os
+import math
 from escena import *
 from menuPausa import MenuPausa
 from sprtesheet import SpriteSheet
@@ -18,7 +19,7 @@ COLISION_SCALE_DOWN = 4
 
 DÍA = 1
 NOITE = True
-DEBUG_COLISION_MAPA = True
+DEBUG_COLISION_MAPA = False
 
 HOME = os.path.dirname(__file__)
 ASSESTS_FILE = os.path.join(HOME, "..", "assets")
@@ -302,13 +303,153 @@ class Player(pygame.sprite.Sprite):
         self.rect.center = self.hitbox.center
 
 
+#patrón Estado: progresión do xogo
+class EstadoProgresion:
+    def entrar(self, juego): pass
+    def update(self, juego): pass
+
+class Dia1(EstadoProgresion):
+    def entrar(self, juego):
+        print("Entrando al Día 1")
+        juego.es_de_noche = False
+        juego.tortillas_objetivo = 3 #cambiar
+        juego.cocina.puntos = 0 #reiniciamos contador tortillas
+        juego.cocina_bloqueada = True
+
+        juego._fade_inicial = False
+        juego._fade_alpha = 0
+        
+        #lanzamos o diálogo inicial usando a nosa nova escena
+        from escena_dialogo import EscenaDialogo
+        dialogo = [
+            "¡Pichi, a currar! Hoy hay mucha clientela",
+            f"No te vas a la cama hasta que saques {juego.tortillas_objetivo} tortillas.",
+            "¡Ponte a cocinar ya!"
+        ]
+        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
+
+    def update(self, juego):
+        #transición: unha vez feitas as 3 tortillas, pasa á Noche 1
+        if juego.cocina.puntos >= juego.tortillas_objetivo:
+            from escena_dialogo import EscenaDialogo
+            dialogo_fin = ["¡Buen trabajo papi! Has terminado por hoy.", "La cafetería está cerrada."]
+            
+            #ao terminar de ler, cambiamos de estado a Noche 1
+            def pasar_a_noche():
+                juego.cambiar_estado(Noche1())
+                
+            juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo_fin, pasar_a_noche))
+            #para evitar bucles infinitos
+            juego.cocina.puntos = 0 
+
+
+class Noche1(EstadoProgresion):
+    def entrar(self, juego):
+        juego.es_de_noche = True
+        juego.tiene_cuchara = False
+        juego.agujero_excavado = False
+        juego.actualizar_sala() #como se fai de noite hai que cambiar a música
+
+    def update(self, juego):
+        pass
+
+
+class Dia2(EstadoProgresion):
+    def entrar(self, juego):
+        juego.es_de_noche = False
+        juego.tortillas_objetivo = 5 #cambiar
+        juego.cocina.puntos = 0
+        juego.cocina_bloqueada = True #o muro da cociña está bloqueado para obligar a cociñar
+        juego.actualizar_sala()
+        
+        from escena_dialogo import EscenaDialogo
+        dialogo = [
+            "¡Despierta, pichi!",
+            "¿Y ese póster? ¿De onichan, arigatou?",
+            "Menudo friki estás hecho...",
+            "Pero bueno...",
+            f"Ayer estuviste vagonetas.",
+            f"Hoy quiero {juego.tortillas_objetivo} tortillas.",
+            "¡A los fogones!"
+        ]
+        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
+
+    def update(self, juego):
+        if juego.cocina.puntos >= juego.tortillas_objetivo:
+            from escena_dialogo import EscenaDialogo
+            dialogo_fin = ["¡Ya era hora!", "Cerramos por hoy. A mimir."]
+            def pasar_a_noche2():
+                juego.cambiar_estado(Noche2()) #pasamos á noite 2
+            juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo_fin, pasar_a_noche2))
+            juego.cocina.puntos = 0
+
+
+class Noche2(EstadoProgresion):
+    def entrar(self, juego):
+        print("Entrando a la Noche 2 - Puerta Desbloqueada")
+        juego.es_de_noche = True
+        juego.cocina_bloqueada = False #agora xa se pode ir ao pasillo
+        juego.actualizar_sala()
+
+        self.mensaje_mostrado = False
+
+    def update(self, juego):
+        #comprobamos constantemente se carlitos pisou o pasillo
+        if not self.mensaje_mostrado and juego.obtener_sala_actual() == "fuera_de_cocina":
+            #damos 150 píxeles de marxe para que a cámara termine o scroll
+            if juego.jugador.hitbox.left > (juego.puerta_cocina.right + 150):
+                self.mensaje_mostrado = True #marcamos pa evitar bucles infinitos
+                
+                from escena_dialogo import EscenaDialogo
+                dialogo = [
+                    "Anda, hay una puerta al final del pasillo...",
+                    "Debería ir a investigar."
+                ]
+                juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
+
+class Dia3(EstadoProgresion):
+    def entrar(self, juego):
+        juego.es_de_noche = False
+        juego.tortillas_objetivo = 7 #cambiar
+        juego.cocina.puntos = 0
+        juego.cocina_bloqueada = True #cerramos a cociña de novo
+        juego.actualizar_sala()
+        
+        from escena_dialogo import EscenaDialogo
+        dialogo = [
+            "¡Pichi! Ayer te fuiste sin fregar.",
+            f"Como castigo, hoy me vas a hacer {juego.tortillas_objetivo} tortillas.",
+            "¡Venga, esos huevos!"
+        ]
+        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
+
+    def update(self, juego):
+        if juego.cocina.puntos >= juego.tortillas_objetivo:
+            from escena_dialogo import EscenaDialogo
+            dialogo_fin = ["¡Por fin primo!", "Ya cayó la noche..."]
+            def pasar_a_noche3():
+                juego.cambiar_estado(Noche3())
+            juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo_fin, pasar_a_noche3))
+            juego.cocina.puntos = 0
+
+class Noche3(EstadoProgresion):
+    def entrar(self, juego):
+        print("Entrando a la Noche 3 - Laberinto")
+        juego.es_de_noche = True
+        juego.cocina_bloqueada = False
+        juego.actualizar_sala()
+
+    def update(self, juego):
+        pass
+
+
 class Juego(Escena):
 
     def __init__(self, director):
         Escena.__init__(self, director)
         self.audio = GestorAudio()
 
-        # Se reproduce la música de la cocina, donde se empieza:
+        #reprodúcese a música da cociña
         self.audio.reproducir_musica("cocina")
         
         self.fondo = pygame.image.load(FONDO_IMG).convert_alpha()
@@ -371,14 +512,33 @@ class Juego(Escena):
         self.pizarra_resuelta = False  #control de estado
 
         #bloqueo da porta da aula ata resolver a pizarra
-        self.puerta_aula = pygame.Rect(1245, 2126, 60, 150)
+        self.puerta_aula = pygame.Rect(1245, 2140, 60, 150)
         self.aula_bloqueada = False
+
+        #para noites na cociña
+        self.zona_cuchara = pygame.Rect(635, 2800, 80, 80) 
+        
+        #maior tamaño para facilitar a interacción
+        self.zona_agujero = pygame.Rect(750, 2880, 120, 150) 
+        
+        #burato cociña
+        self.puerta_cocina = pygame.Rect(807, 2880, 60, 150)
+
+        #bloqueo exterior laberinto
+        self.bloqueo_laberinto = pygame.Rect(765, 1554, 70, 150)
+
+        #porta saída final
+        self.zona_salida = pygame.Rect(1015, 90, 80, 80)
+
+        self.cocina_bloqueada = True
+        self.tiene_cuchara = False
+        self.agujero_excavado = False
 
         self._render_surf = pygame.Surface(
             (self.camara.ancho_cam, self.camara.alto_cam), pygame.SRCALPHA
         )
 
-        # Pre-cargar y pre-escalar a imaxe de cuberta de sala unha soa vez:
+        #pre-cargar e pre-escalar a imaxe de cuberta de sala unha soa vez:
         bg_path = os.path.join(GRAPHICS_FILE, 'environments', 'background.png')
         if os.path.exists(bg_path):
             _bg_src = pygame.image.load(bg_path).convert_alpha()
@@ -393,6 +553,14 @@ class Juego(Escena):
         self._fade_inicial = True
         self._fade_alpha = 255
 
+        
+        #configuración da máquina de estados
+        self.es_de_noche = False
+        self.tortillas_objetivo = 999 
+        self.estado_actual = None
+        
+        self.juego_arrancado = False
+
     def eventos(self, lista_eventos):
         self.cocina.eventos(lista_eventos) 
         for evento in lista_eventos:
@@ -404,6 +572,13 @@ class Juego(Escena):
                     self.audio.cambiar_volumen_musica(VOL_MUSICA / 2) # Se atenúa el volúmen de la música al pausar
                     self.director.apilarEscena(MenuPausa(self.director))
 
+                #DEBUG: engadir tortillas mágicamente
+                #cambiar
+                if evento.key == pygame.K_t:
+                    self.cocina.puntos += 1
+                    print(f"DEBUG: ¡Tortilla mágica añadida! Llevas {self.cocina.puntos} tortillas.")
+                    self.audio.reproducir_sonido("campana", self.audio.canal_ui)
+
                 #pizarra
                 if evento.key in [pygame.K_e, pygame.K_x]:
                     #condición 'not self.pizarra_resuelta' para que unha vez resuelta a pizarra, non se poida volver a interactuar con ela
@@ -414,6 +589,87 @@ class Juego(Escena):
                         #patrón Callback: pasamos 'self.superar_pizarra' a escena
                         escena_pizz = EscenaPizarra(self.director, self.superar_pizarra)
                         self.director.apilarEscena(escena_pizz)
+
+                    #culler (Solo Noche 1)
+                    if isinstance(self.estado_actual, Noche1) and not self.tiene_cuchara and self.zona_cuchara.colliderect(self.jugador.hitbox):
+                        from escena_dialogo import EscenaDialogo
+                        self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
+                        self.tiene_cuchara = True
+                        dialogo = ["¡Has encontrado una cuchara sucia escondida!", "Quizás sirva para excavar en esa", "pared de la derecha..."]
+                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+
+                    #pared/burato (Solo Noche 1)
+                    if isinstance(self.estado_actual, Noche1) and self.zona_agujero.colliderect(self.jugador.hitbox):
+                        from escena_dialogo import EscenaDialogo
+                        if not self.tiene_cuchara:
+                            dialogo = ["La pared de aquí parece frágil...", "Pero necesitas una herramienta para excavar."]
+                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+                        else:
+                            self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
+                            self.agujero_excavado = True
+                            #Carlitos non pode escapar porque se fai de día
+                            dialogo = [
+                                "Te pasas toda la noche excavando con la cuchara...",
+                                "¡Has hecho un agujero que da al",
+                                "misterioso pasillo!",
+                                "Pero estás agotado y ya se ha hecho de día...",
+                                "Escondes lo que hiciste con un póster de anime."
+                            ]
+                            def fin_excavar():
+                                self.cambiar_estado(Dia2())
+                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo, fin_excavar))
+
+                            
+                    #diálogos de portas bloqueadas
+                    #Noche 2: o laberinto está bloqueado
+                    if isinstance(self.estado_actual, Noche2) and self.bloqueo_laberinto.inflate(20, 20).colliderect(self.jugador.hitbox):
+                        from escena_dialogo import EscenaDialogo
+                        self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                        dialogo = ["Debería explorar esta zona otro día."]
+                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+
+                    #Noche 3: a sala da pizarra está fechada
+                    if isinstance(self.estado_actual, Noche3) and self.puerta_aula.inflate(20, 20).colliderect(self.jugador.hitbox):
+                        from escena_dialogo import EscenaDialogo
+                        self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                        dialogo = ["Aquí no tengo nada más que hacer."]
+                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+
+                    #laberinto rematado: mensaxe de ir ao final
+                    if self.room2_event.key_collected and self.bloqueo_laberinto.inflate(20, 20).colliderect(self.jugador.hitbox):
+                        from escena_dialogo import EscenaDialogo
+                        self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                        dialogo = ["Aquí no tengo nada más que hacer."]
+                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+
+
+                    #porta final (escape)
+                    if self.zona_salida.colliderect(self.jugador.hitbox):
+                        from escena_dialogo import EscenaDialogo
+                        
+                        #comprobar se ten ambas chaves
+                        if self.pizarra_resuelta and self.room2_event.key_collected:
+                            self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
+                            dialogo = [
+                                "Las dos llaves encajan perfectamente.",
+                                "La puerta se abre con un chirrido.",
+                                "FIN DEL JUEGO"
+                            ]
+                            def fin_juego():
+                                #fecha o xogo
+                                self.director.salirPrograma() 
+                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo, fin_juego))
+                        
+                        #se falta algunha chave
+                        else:
+                            self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                            dialogo = [
+                                "La puerta está en modo 'no molestar'.",
+                                "Necesitas la llave de la pizarra",
+                                "y la llave del laberinto para abrirla."
+                            ]
+                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo))        
+
     
     # Se gestionan las salas en las que se encuentra el jugador (para audio, y quizá otros).
     # De momento, sólo es necesario saber si el jugador se encuentra o no en la cocina:
@@ -425,26 +681,69 @@ class Juego(Escena):
             else:
                 return "fuera_de_cocina"
             
+            
     def actualizar_sala(self):
         nueva_sala = self.obtener_sala_actual()
-        if nueva_sala == self.sala_actual:
-            return
-        else:
-            if nueva_sala == "cocina":
-                self.audio.reproducir_musica("cocina")
-            else:
-                self.audio.reproducir_musica("escape")
         
-        self.sala_actual = nueva_sala
+        #se está na cociña de noite soa a música de escape, senón a música de cociñado
+        if nueva_sala == "cocina":
+            musica_objetivo = "escape" if self.es_de_noche else "cocina"
+        else:
+            musica_objetivo = "escape"
+            
+        #comprobar qué música está soando realmente para non reiniciarla
+        musica_actual = getattr(self, '_musica_sonando', None)
+        
+        if musica_objetivo != musica_actual:
+            self.audio.reproducir_musica(musica_objetivo)
+            self._musica_sonando = musica_objetivo
+            
+        self.sala_actual = nueva_sala   
+
+
+    def cambiar_estado(self, nuevo_estado):
+        #Patrón Estado: cambia o comportamento do xogo segundo se é noite ou día
+        self.estado_actual = nuevo_estado
+        self.estado_actual.entrar(self)    
 
     def superar_pizarra(self):
         #se executa unha vez o xogador resolva a pizarra
         self.pizarra_resuelta = True
+
+        from escena_dialogo import EscenaDialogo
+        dialogo = [
+            "¡Has conseguido la llave pizarra!",
+            "Pero parece que está amaneciendo...",
+            "Deberías volver rápido a la cocina",
+            "antes de que Michel te pille."
+        ]
+        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
         
-        #print("¡Test superado! La puerta se ha desbloqueado.")  
+        #avisamos ao xogo que estamos na fase de volta á cociña
+        self.debe_volver_a_cocina = True
+
 
     def update(self, tiempo_pasado):
-        #print(f"Posición de Carlitos -> X: {self.jugador.hitbox.x} | Y: {self.jugador.hitbox.y}") #debuggeo
+        #debuggeo
+        #print(f"Posición de Carlitos -> X: {self.jugador.hitbox.x} | Y: {self.jugador.hitbox.y}")
+
+        #arrancamos o Día 1 no primeiro fotograma, cando o Juego está xa na pantalla
+        if not self.juego_arrancado:
+            self.juego_arrancado = True
+            self.cambiar_estado(Dia1())
+
+        #comproba se voltamos á cociña logo de resolver a pizarra
+        if getattr(self, 'debe_volver_a_cocina', False) and self.obtener_sala_actual() == "cocina":
+            
+
+            #restamos 115 pixels para obligar a entrar na cociña de todo e evitar problemas do scroll
+            if self.jugador.hitbox.right < (self.puerta_cocina.left - 115):
+                self.debe_volver_a_cocina = False
+                self.cambiar_estado(Dia3())
+
+        #a máquina de estados vixila se fixemos a tortillas
+        if self.estado_actual:
+            self.estado_actual.update(self)
 
         #comproba se o xogador está na aula
         en_aula = self.salas[1].collidepoint(self.jugador.hitbox.center)
@@ -461,8 +760,36 @@ class Juego(Escena):
 
         #actualizar as colisiones extra, engade a porta se bloqueada
         colisiones_extra = self.room2_event.get_extra_collision_rects()
-        if self.aula_bloqueada:
+
+        if self.aula_bloqueada or isinstance(self.estado_actual, Noche3): #se na Noche 3, fechamos aula para obligar a ir ao laberinto
             colisiones_extra.append(self.puerta_aula)
+
+        #bloqueo cociña
+        if self.cocina_bloqueada:
+            colisiones_extra.append(self.puerta_cocina)    
+
+        #bloqueo do laberinto
+        en_laberinto = self.salas[2].collidepoint(self.jugador.hitbox.center)
+        
+        if isinstance(self.estado_actual, Noche2):
+            colisiones_extra.append(self.bloqueo_laberinto)
+            
+        #na Noche 3, bloquéase só se tes a chave, saíches da sala e non estar a tocar o marco da porta
+        elif self.room2_event.key_collected and not en_laberinto:
+            if not self.jugador.hitbox.colliderect(self.bloqueo_laberinto):
+                colisiones_extra.append(self.bloqueo_laberinto)
+
+            #diálogo automático ao saír do laberinto coa chave
+            #se ten a chave, non está no laberinto, e aínda non lle mostramos a mensaxe
+            if not getattr(self, '_mensaje_llaves_mostrado', False):
+                if self.jugador.hitbox.left > (self.bloqueo_laberinto.right + 50):
+                    self._mensaje_llaves_mostrado = True #marcamos que xa o viu
+                    from escena_dialogo import EscenaDialogo
+                    dialogo = [
+                        "Ya tengo las 2 llaves.", 
+                        "Debería ir a la puerta al final de este pasillo."
+                    ]
+                    self.director.apilarEscena(EscenaDialogo(self.director, dialogo))    
 
 
         self.jugador.set_extra_collision_rects(colisiones_extra)
@@ -513,6 +840,22 @@ class Juego(Escena):
             rect_cam_pizarra = self.camara.aplicar_rect(self.zona_pizarra)
             pygame.draw.rect(self._render_surf, (255, 0, 0), rect_cam_pizarra, 3)
 
+            #rectángulo verde para a culler
+            rect_cam_cuchara = self.camara.aplicar_rect(self.zona_cuchara)
+            pygame.draw.rect(self._render_surf, (0, 255, 0), rect_cam_cuchara, 3)
+            
+            #rectángulo amarillo para o burato
+            rect_cam_agujero = self.camara.aplicar_rect(self.zona_agujero)
+            pygame.draw.rect(self._render_surf, (255, 255, 0), rect_cam_agujero, 3)
+
+            #rectángulo morado para bloquear o Laberinto
+            rect_cam_lab = self.camara.aplicar_rect(self.bloqueo_laberinto)
+            pygame.draw.rect(self._render_surf, (255, 0, 255), rect_cam_lab, 3)
+
+            #rectángulo cian para a porta Final
+            rect_cam_salida = self.camara.aplicar_rect(self.zona_salida)
+            pygame.draw.rect(self._render_surf, (0, 255, 255), rect_cam_salida, 3)
+
         self.room2_event.draw_light_overlay(self._render_surf, self.camara, self.jugador)
 
         # Cubrir as salas onde o xogador NON está (dentro de _render_surf, antes de escalar):
@@ -523,14 +866,33 @@ class Juego(Escena):
 
         self.cocina.dibujar(self._render_surf, self.camara)
 
+        #efecto de destello na cuchara
+        if isinstance(self.estado_actual, Noche1) and not self.tiene_cuchara:
+            tiempo = pygame.time.get_ticks()
+            alpha_brillo = int((math.sin(tiempo * 0.005) + 1) * 75) + 50
+            
+            #debuxa unha pequeña luz amarela
+            surf_luz = pygame.Surface((40, 40), pygame.SRCALPHA)
+            pygame.draw.circle(surf_luz, (255, 255, 100, alpha_brillo), (20, 20), 15) #halo
+            pygame.draw.circle(surf_luz, (255, 255, 255, alpha_brillo + 50), (20, 20), 5) #centro brillante
+            
+            rect_brillo = self.camara.aplicar_rect(self.zona_cuchara)
+            self._render_surf.blit(surf_luz, (rect_brillo.centerx - 20, rect_brillo.centery - 20))
+
         # La resolución anterior se escala al tamaño real de la pantalla
         scaled_surface = pygame.transform.scale(self._render_surf, (ANCHO, ALTO))
         pantalla.blit(scaled_surface, (0, 0))
 
-        if NOITE == 1:
+
+        if self.es_de_noche:
             overlay = pygame.Surface(pantalla.get_size(), pygame.SRCALPHA)
             overlay.fill((12, 4, 33, 180)) 
             pantalla.blit(overlay, (0, 0))
+        else:
+            #filtro suave para baixar o brillo de día
+            overlay_dia = pygame.Surface(pantalla.get_size(), pygame.SRCALPHA)
+            overlay_dia.fill((0, 0, 0, 70)) 
+            pantalla.blit(overlay_dia, (0, 0))    
 
         # Fade in inicial al empezar el juego
         if self._fade_inicial:
