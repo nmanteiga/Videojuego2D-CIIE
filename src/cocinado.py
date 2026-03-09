@@ -411,7 +411,7 @@ class XestorCocina:
         return (self.caixa_patacas, "highlight_patacas.png")
 
     def _estacion_permitida(self, est):
-        #durante a primeira tortilla, só se pode interactuar coa estación highlighteada.
+        #durante a primeira tortilla, só se pode interactuar coa estación highlighteada
         if self.primeira_tortilla_feita:
             return True
         est_guia, _ = self._highlight_activo()
@@ -517,9 +517,67 @@ class XestorCocina:
         txt_man  = fonte.render(f"Man: {nome_man}", True, COR_XOGADOR_HUD)
         pantalla.blit(txt_man, (10, 60))
 
+        #version mais descritiva para que o usuario poda saber o que ten diante
+
         if self._estacion_preto:
-            txt_est = fonte.render(
-                f"[E] {self._estacion_preto.nome}  [X] Accion",
-                True, (200, 255, 200)
-            )
-            pantalla.blit(txt_est, (10, 85))
+            est = self._estacion_preto
+
+            if isinstance(est, FonteIngrediente):
+                contido = NOMES_INGREDIENTE.get(est.tipo, est.tipo)
+            elif isinstance(est, Cunca):
+                partes = []
+                if est.ovo:           partes.append(est.ovo.nome())
+                if est.pataca_frita:  partes.append("Patacas fritas")
+                if est.mestura_lista: partes = ["Mestura lista"]
+                contido = ", ".join(partes) if partes else "Baleiro"
+            elif est.ingrediente_na_estacion:
+                contido = est.ingrediente_na_estacion.nome()
+            else:
+                contido = "Baleiro"
+
+            #acción ao pulsar E
+            if isinstance(est, Mostrador):
+                acc_e = "Entregar tortilla" if (self.man and self.man.estado == TORTILLA) else None
+            elif isinstance(est, FonteIngrediente):
+                if self.man and self.man.estado == est.tipo:
+                    acc_e = f"Devolver {NOMES_INGREDIENTE.get(est.tipo, '')}"
+                elif self.man is None:
+                    acc_e = f"Coller {NOMES_INGREDIENTE.get(est.tipo, '')}"
+                else:
+                    acc_e = None
+            elif self.man is not None:
+                acc_e = f"Deixar {self.man.nome()}" if est.pode_recibir(self.man) else None
+            elif est.pode_dar():
+                if isinstance(est, Cunca) and est.mestura_lista:
+                    acc_e = "Coller mestura"
+                elif est.ingrediente_na_estacion:
+                    acc_e = f"Coller {est.ingrediente_na_estacion.nome()}"
+                else:
+                    acc_e = None
+            else:
+                acc_e = None
+
+            #acción ao pulsar X
+            if isinstance(est, TaboaCortar):
+                if est.ingrediente_na_estacion and est.ingrediente_na_estacion.estado == PATACA_ENTEIRA:
+                    acc_x = f"Cortar ({est.progreso}/{est.PULSACIONS_NECESARIAS})"
+                else:
+                    acc_x = None
+            elif isinstance(est, Cunca):
+                if est.ovo and est.ovo.estado == OVO_ENTEIRO:
+                    acc_x = f"Bater ({est.progreso_bater}/{est.PULSACIONS_BATER})"
+                else:
+                    acc_x = None
+            elif isinstance(est, Fogon) and est.cocinando:
+                seg = max(0, (est.TEMPO_COCCION_MS - est.tempo_acumulado) // 1000)
+                acc_x = f"Fritindo... ({seg}s)"
+            else:
+                acc_x = None
+
+            cor = (200, 255, 200)
+            pantalla.blit(fonte.render(f"{est.nome}: {contido}", True, cor), (10, 85))
+            y = 110
+            if acc_e:
+                pantalla.blit(fonte.render(f"E: {acc_e}", True, cor), (10, y)); y += 25
+            if acc_x:
+                pantalla.blit(fonte.render(f"X: {acc_x}", True, cor), (10, y))
