@@ -330,6 +330,7 @@ class XestorCocina:
         self._estacion_preto = None
         self.primeira_tortilla_feita = False
         self.deuda = 3.00
+        self.tutorial_activo = False
 
     def sumar_punto(self):
         self.puntos += 1
@@ -472,10 +473,16 @@ class XestorCocina:
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
             if evento.type == pygame.KEYDOWN:
+                if self.tutorial_activo:
+                    if evento.key == pygame.K_SPACE:
+                        self.tutorial_activo = False
+                    return
                 if evento.key == pygame.K_e:   self.accion_e()
                 elif evento.key == pygame.K_x: self.accion_x()
 
     def update(self, tempo_ms):
+        if self.tutorial_activo:
+            return
         self._estacion_preto = self.get_estacion_preto()
         for est in self.estacions:
             est.update(tempo_ms)
@@ -486,6 +493,67 @@ class XestorCocina:
         "highlight_patacas.png",
         "highlight_entrega.png",
     }
+
+    #tutorial para o cociñado paso a paso e controis xerais
+
+    _TUTORIAL_ITEMS = [
+        ("Caixa de Patacas",   "E: Coller patacas"),
+        ("Táboa de Cortar",    "E: Deixar patacas · X (×10): Cortar · E: Coller patacas cortadas"),
+        ("Fogón",              "E: Deixar patacas cortadas · Agardar 5s · E: Coller patacas fritas"),
+        ("Prato",              "E: Deixar patacas fritas"),
+        ("Neveira",            "E: Coller ovos"),
+        ("Cunca",              "E: Deixar ovos· X (×10): Bater"),
+        ("Prato",              "E: Coller patacas fritas"),
+        ("Cunca",              "E: Deixar patacas fritas· E: Coller mestura"),
+        ("Fogón",              "E: Deixar mestura · Agardar 5s · E: Coller tortilla"),
+        ("Mostrador",          "E: Entregar tortilla"),
+    ]
+
+    def dibujar_tutorial(self, pantalla, camara):
+        if not self.tutorial_activo:
+            return
+
+        w, h = pantalla.get_size()
+        overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        pantalla.blit(overlay, (0, 0))
+
+        n_items = len(self._TUTORIAL_ITEMS)
+        panel_w = 620
+        panel_h = 44 + n_items * 38 + 80
+        panel_x = (w - panel_w) // 2
+        panel_y = max(10, (h - panel_h) // 2 - 10)
+        panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        panel.fill((20, 20, 30, 220))
+        pygame.draw.rect(panel, (200, 200, 255, 180), (0, 0, panel_w, panel_h), 2, border_radius=10)
+        pantalla.blit(panel, (panel_x, panel_y))
+
+        fonte_titulo = _fonte(18, bold=True)
+        fonte_item   = _fonte(13, bold=False)
+        fonte_hint   = _fonte(14, bold=True)
+
+        titulo = fonte_titulo.render("RECEITA DA TORTILLA", True, (255, 230, 100))
+        pantalla.blit(titulo, (panel_x + (panel_w - titulo.get_width()) // 2, panel_y + 12))
+
+        y = panel_y + 44
+        for nome, desc in self._TUTORIAL_ITEMS:
+            pygame.draw.circle(pantalla, (100, 220, 255), (panel_x + 22, y + 7), 4)
+            txt_nome = fonte_item.render(nome, True, (200, 255, 200))
+            txt_desc = fonte_item.render(desc, True, (200, 200, 200))
+            pantalla.blit(txt_nome, (panel_x + 34, y))
+            pantalla.blit(txt_desc, (panel_x + 34, y + 16))
+            y += 38
+
+        sep_y = panel_y + panel_h - 68
+        pygame.draw.line(pantalla, (100, 100, 150),
+            (panel_x + 20, sep_y), (panel_x + panel_w - 20, sep_y), 1)
+
+        controles = "WASD: Moverse  ·  E: Coller/Deixar  ·  X: Acción  ·  ESC: Pausa"
+        txt_ctrl = fonte_item.render(controles, True, (180, 180, 255))
+        pantalla.blit(txt_ctrl, (panel_x + (panel_w - txt_ctrl.get_width()) // 2, sep_y + 8))
+
+        hint = fonte_hint.render("[ ESPAZO ] para continuar", True, (255, 255, 100))
+        pantalla.blit(hint, (panel_x + (panel_w - hint.get_width()) // 2, panel_y + panel_h - 32))
 
     def dibujar_highlight(self, pantalla, camara):
         est_guia, hl_nome = self._highlight_activo()
