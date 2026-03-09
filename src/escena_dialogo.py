@@ -4,7 +4,7 @@ from escena import Escena, ANCHO, ALTO
 from gestorAudio import GestorAudio
 
 class EscenaDialogo(Escena):
-    #Patrón Estado: esta escena apílase sobre o xogo para mostrar diálogos, destruíndose ao terminar de ler
+    #patrón Estado: esta escena apílase sobre o xogo para mostrar diálogos, destruíndose ao terminar de ler
     def __init__(self, director, textos, callback_fin=None):
         super().__init__(director)
         self.audio = GestorAudio()
@@ -22,6 +22,7 @@ class EscenaDialogo(Escena):
         
         #dimensión caixa de texto
         self.caja_rect = pygame.Rect(40, ALTO - 120, ANCHO - 80, 100)
+        self.espazamento_linas = 8 #espazo extra entre liñas de texto
 
     def update(self, tiempo_pasado):
         #se rematamos de ler, non actualizamos nada
@@ -53,16 +54,39 @@ class EscenaDialogo(Escena):
                     self.indice_texto += 1
                     self.caracteres_mostrados = 0
                     
-                    #saímos se non máis textos
+                    #saímos se non hai máis textos
                     if self.indice_texto >= len(self.textos):
-                        self.director.salirEscena() #matamos o diálogo anterior
+                        self.director.salirEscena() #matamos o diálogo actual
                         if self.callback_fin:
-                            self.callback_fin()     #creamos o novo
+                            self.callback_fin()     #chamamos ao callback se existe
+
+    #función importada de text.py para axustar o texto ao ancho da caixa
+    def envolver_texto(self, texto, max_ancho):
+        palabras = texto.split(' ')
+        linas = []
+        lina_actual = ""
+        
+        for palabra in palabras:
+            proba_lina = lina_actual + palabra + " " if lina_actual else palabra + " "
+            #comproba se a liña entra na caixa
+            if self.fuente.size(proba_lina)[0] <= max_ancho:
+                lina_actual = proba_lina
+            else:
+                if lina_actual:
+                    linas.append(lina_actual.rstrip())
+                lina_actual = palabra + " "
+        
+        if lina_actual:
+            linas.append(lina_actual.rstrip())
+            
+        return linas
 
     def dibujar(self, pantalla):
-        #debuxamos o fondo do xogo
-        if len(self.director.pila) >= 2:
-            self.director.pila[-2].dibujar(pantalla)
+        #sistema anti-bucles a proba de fallos: debuxa a escena xusto debaixo desta na pila
+        if self in self.director.pila:
+            indice_actual = self.director.pila.index(self)
+            if indice_actual > 0:
+                self.director.pila[indice_actual - 1].dibujar(pantalla)
 
         #se rematamos non se debuxa caixa de texto
         if self.indice_texto >= len(self.textos):
@@ -72,12 +96,30 @@ class EscenaDialogo(Escena):
         pygame.draw.rect(pantalla, (40, 40, 60), self.caja_rect, border_radius=10)
         pygame.draw.rect(pantalla, (255, 215, 0), self.caja_rect, 3, border_radius=10)
 
-        #debuxamos o texto ata onde foi animado
+        #preparamos o texto actual
         texto_actual = self.textos[self.indice_texto]
-        texto_visible = texto_actual[:int(self.caracteres_mostrados)]
+        max_ancho_texto = self.caja_rect.width - 40
         
-        render = self.fuente.render(texto_visible, True, (240, 240, 240))
-        pantalla.blit(render, (self.caja_rect.x + 20, self.caja_rect.y + 20))
+        #dividimos o texto en liñas que caiban na caixa (e respectamos os \n manuais)
+        linas_totais = []
+        for lina_manual in texto_actual.split('\n'):
+            linas_totais.extend(self.envolver_texto(lina_manual, max_ancho_texto))
+            
+        #debuxamos o texto progresivamente liña por liña
+        caracteres_restantes = int(self.caracteres_mostrados)
+        y_offset = 0
+        
+        for lina in linas_totais:
+            if caracteres_restantes <= 0:
+                break
+                
+            #collemos só a cantidade de caracteres que tocan debuxar nesta liña
+            texto_lina = lina[:caracteres_restantes]
+            caracteres_restantes -= len(lina)
+            
+            render = self.fuente.render(texto_lina, True, (240, 240, 240))
+            pantalla.blit(render, (self.caja_rect.x + 20, self.caja_rect.y + 20 + y_offset))
+            y_offset += render.get_height() + self.espazamento_linas
         
         #indicador tecla para pasar o diálogo
         if self.caracteres_mostrados >= len(texto_actual):

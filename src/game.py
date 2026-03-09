@@ -365,12 +365,11 @@ class Dia2(EstadoProgresion):
         from escena_dialogo import EscenaDialogo
         dialogo = [
             "¡Despierta, pichi!",
-            "¿Y ese póster? ¿De onichan, arigatou?",
+            "¿Y ese póster? ¿De onichan, arigato?",
             "Menudo friki estás hecho...",
             "Pero bueno...",
             f"Ayer estuviste vagonetas.",
-            f"Hoy quiero {juego.tortillas_objetivo} tortillas.",
-            "¡A los fogones!"
+            f"Hoy quiero {juego.tortillas_objetivo} tortillas. ¡A los fogones!"
         ]
         juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
 
@@ -419,7 +418,7 @@ class Dia3(EstadoProgresion):
         dialogo = [
             "¡Pichi! Ayer te fuiste sin fregar.",
             f"Como castigo, hoy me vas a hacer {juego.tortillas_objetivo} tortillas.",
-            "¡Venga, esos huevos!"
+            "¡Venga, dale a esos huevos!"
         ]
         juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
 
@@ -595,7 +594,7 @@ class Juego(Escena):
                         from escena_dialogo import EscenaDialogo
                         self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
                         self.tiene_cuchara = True
-                        dialogo = ["¡Has encontrado una cuchara sucia escondida!", "Quizás sirva para excavar en esa", "pared de la derecha..."]
+                        dialogo = ["¡Has encontrado una cuchara sucia escondida!", "Quizás sirva para excavar en esa pared de la derecha..."]
                         self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
 
                     #pared/burato (Solo Noche 1)
@@ -610,8 +609,7 @@ class Juego(Escena):
                             #Carlitos non pode escapar porque se fai de día
                             dialogo = [
                                 "Te pasas toda la noche excavando con la cuchara...",
-                                "¡Has hecho un agujero que da al",
-                                "misterioso pasillo!",
+                                "¡Has hecho un agujero que da al misterioso pasillo!",
                                 "Pero estás agotado y ya se ha hecho de día...",
                                 "Escondes lo que hiciste con un póster de anime."
                             ]
@@ -665,8 +663,7 @@ class Juego(Escena):
                             self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
                             dialogo = [
                                 "La puerta está en modo 'no molestar'.",
-                                "Necesitas la llave de la pizarra",
-                                "y la llave del laberinto para abrirla."
+                                "Necesitas la llave de la pizarra y la llave del laberinto para abrirla."
                             ]
                             self.director.apilarEscena(EscenaDialogo(self.director, dialogo))        
 
@@ -714,8 +711,7 @@ class Juego(Escena):
         dialogo = [
             "¡Has conseguido la llave pizarra!",
             "Pero parece que está amaneciendo...",
-            "Deberías volver rápido a la cocina",
-            "antes de que Michel te pille."
+            "Deberías volver rápido a la cocina, antes de que Michel te pille."
         ]
         self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
         
