@@ -365,7 +365,7 @@ class Juego(Escena):
         x = max(-(ANCHO_MAPA - ANCHO), x)
         y = max(-(ALTO_MAPA - ALTO), y)
 
-        self.cocina = XestorCocina(self.jugador)
+        self.cocina = XestorCocina(self.jugador, GRAPHICS_FILE)
 
         self.zona_pizarra = pygame.Rect(1919, 2086, 80, 80) #pulsar e para interactuar coa pizarra
         self.pizarra_resuelta = False  #control de estado
@@ -484,6 +484,7 @@ class Juego(Escena):
         self._render_surf.fill((0, 0, 0, 0))
         self._render_surf.blit(self.fondo, self.camara.aplicar_rect(self.fondo.get_rect()))
         self.room2_event.draw_objects(self._render_surf, self.camara)
+        self.cocina.dibujar_highlight(self._render_surf, self.camara)
 
         for sprite in self.sprites:
             self._render_surf.blit(sprite.image, self.camara.aplicar(sprite))
@@ -491,6 +492,7 @@ class Juego(Escena):
         self.room2_event.draw_front(self._render_surf, self.camara)
 
         self._render_surf.blit(self.frente, self.camara.aplicar_rect(self.frente.get_rect()))
+        self.cocina.dibujar_highlight_frente(self._render_surf, self.camara)
 
         sala_clase1 = self.salas[1]  # Sala del medio derecha
         if sala_clase1.collidepoint(self.jugador.hitbox.center):
