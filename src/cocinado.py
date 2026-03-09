@@ -410,9 +410,18 @@ class XestorCocina:
 
         return (self.caixa_patacas, "highlight_patacas.png")
 
+    def _estacion_permitida(self, est):
+        #durante a primeira tortilla, só se pode interactuar coa estación highlighteada.
+        if self.primeira_tortilla_feita:
+            return True
+        est_guia, _ = self._highlight_activo()
+        return est_guia is None or est is est_guia
+
     def accion_e(self):
         est = self._estacion_preto
         if est is None:
+            return
+        if not self._estacion_permitida(est):
             return
 
         if isinstance(est, Mostrador):
@@ -456,6 +465,8 @@ class XestorCocina:
 
     def accion_x(self):
         if self._estacion_preto is not None:
+            if not self._estacion_permitida(self._estacion_preto):
+                return
             self._estacion_preto.accion_x(self.xogador)
 
     def eventos(self, lista_eventos):
