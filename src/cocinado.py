@@ -139,7 +139,7 @@ class CaixaPatacas(FonteIngrediente):
 
 
 class TaboaCortar(Estacion):
-    PULSACIONS_NECESARIAS = 20
+    PULSACIONS_NECESARIAS = 10
 
     def __init__(self, rect_mapa):
         super().__init__("Táboa Cortar", rect_mapa)
@@ -223,7 +223,7 @@ class Fogon(Estacion):
 
 
 class Cunca(Estacion):
-    PULSACIONS_BATER = 30
+    PULSACIONS_BATER = 10
 
     def __init__(self, rect_mapa):
         super().__init__("Cunca", rect_mapa)

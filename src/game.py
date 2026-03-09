@@ -312,7 +312,7 @@ class Dia1(EstadoProgresion):
     def entrar(self, juego):
         print("Entrando al Día 1")
         juego.es_de_noche = False
-        juego.tortillas_objetivo = 3 #cambiar
+        juego.tortillas_objetivo = 2 #cambiar
         juego.cocina.puntos = 0 #reiniciamos contador tortillas
         juego.cocina_bloqueada = True
 
@@ -357,7 +357,7 @@ class Noche1(EstadoProgresion):
 class Dia2(EstadoProgresion):
     def entrar(self, juego):
         juego.es_de_noche = False
-        juego.tortillas_objetivo = 5 #cambiar
+        juego.tortillas_objetivo = 3 #cambiar
         juego.cocina.puntos = 0
         juego.cocina_bloqueada = True #o muro da cociña está bloqueado para obligar a cociñar
         juego.actualizar_sala()
@@ -409,7 +409,7 @@ class Noche2(EstadoProgresion):
 class Dia3(EstadoProgresion):
     def entrar(self, juego):
         juego.es_de_noche = False
-        juego.tortillas_objetivo = 7 #cambiar
+        juego.tortillas_objetivo = 5 #cambiar
         juego.cocina.puntos = 0
         juego.cocina_bloqueada = True #cerramos a cociña de novo
         juego.actualizar_sala()
