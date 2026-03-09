@@ -571,11 +571,11 @@ class Juego(Escena):
                     self.audio.cambiar_volumen_musica(VOL_MUSICA / 2) # Se atenúa el volúmen de la música al pausar
                     self.director.apilarEscena(MenuPausa(self.director))
 
-                #DEBUG: engadir tortillas mágicamente
+                #DEBUG: engadir tortillas
                 #cambiar
                 if evento.key == pygame.K_t:
                     self.cocina.puntos += 1
-                    print(f"DEBUG: ¡Tortilla mágica añadida! Llevas {self.cocina.puntos} tortillas.")
+                    print(f"DEBUG: Tortilla añadida. Llevas {self.cocina.puntos} tortillas.")
                     self.audio.reproducir_sonido("campana", self.audio.canal_ui)
 
                 #pizarra
