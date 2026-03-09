@@ -524,7 +524,7 @@ class Juego(Escena):
         self.puerta_cocina = pygame.Rect(807, 2880, 60, 150)
 
         #bloqueo exterior laberinto
-        self.bloqueo_laberinto = pygame.Rect(765, 1554, 70, 150)
+        self.bloqueo_laberinto = pygame.Rect(765, 1554, 90, 150)
 
         #porta saída final
         self.zona_salida = pygame.Rect(1015, 90, 80, 80)
@@ -663,7 +663,7 @@ class Juego(Escena):
                             self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
                             dialogo = [
                                 "La puerta está en modo 'no molestar'.",
-                                "Necesitas la llave de la pizarra y la llave del laberinto para abrirla."
+                                "Hay 2 cerrojos."
                             ]
                             self.director.apilarEscena(EscenaDialogo(self.director, dialogo))        
 
