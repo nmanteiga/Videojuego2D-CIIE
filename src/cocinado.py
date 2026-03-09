@@ -54,6 +54,7 @@ def inicializar_highlights(graphics_dir):
         "highlight_fritir.png",
         "highlight_bol.png",
         "highlight_prato.png",
+        "highlight_entrega.png",
     ):
         _cargar_highlight(graphics_dir, nome)
 
@@ -112,7 +113,6 @@ class Estacion:
     def update(self, tempo_ms): pass
 
     def dibujar(self, pantalla, camara, highlight_nome=None):
-        """Debúxase o highlight se se pasa un nome de ficheiro."""
         if highlight_nome and highlight_nome in _HIGHLIGHTS_CACHE:
             surf = _HIGHLIGHTS_CACHE[highlight_nome]
             mapa_rect = pygame.Rect(0, 0, surf.get_width(), surf.get_height())
@@ -358,6 +358,9 @@ class XestorCocina:
         cunca = self.cunca
         prato = self.prato
 
+        if man and man.estado == TORTILLA:
+            return (self.mostrador, "highlight_entrega.png")
+
         if (fogon.ingrediente_na_estacion and
                 fogon.ingrediente_na_estacion.estado in (MESTURA_TORTILLA, TORTILLA)):
             return (fogon, "highlight_fritir.png")
@@ -366,7 +369,7 @@ class XestorCocina:
             return (fogon, "highlight_fritir.png")
 
         if cunca.mestura_lista:
-            return (fogon, "highlight_fritir.png")
+            return (cunca, "highlight_bol.png")
 
         if man and man.estado == PATACA_FRITA:
             if cunca.ovo and cunca.ovo.estado == OVO_BATIDO:
@@ -390,7 +393,7 @@ class XestorCocina:
         if (fogon.ingrediente_na_estacion and
                 fogon.ingrediente_na_estacion.estado == PATACA_FRITA and
                 not fogon.cocinando):
-            return (prato, "highlight_prato.png")
+            return (fogon, "highlight_fritir.png")
 
         if (fogon.cocinando and fogon.ingrediente_na_estacion and
                 fogon.ingrediente_na_estacion.estado == PATACA_CORTADA):
@@ -470,6 +473,7 @@ class XestorCocina:
         "highlight_bol.png",
         "highlight_cortar.png",
         "highlight_patacas.png",
+        "highlight_entrega.png",
     }
 
     def dibujar_highlight(self, pantalla, camara):
