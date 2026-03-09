@@ -169,7 +169,7 @@ class TaboaCortar(Estacion):
 
 
 class Fogon(Estacion):
-    TEMPO_COCCION_MS = 10_000
+    TEMPO_COCCION_MS = 5_000 # Cambiado de 10 a 5 segundos
     ACEPTA = {
         PATACA_CORTADA: PATACA_FRITA,
         MESTURA_TORTILLA: TORTILLA,
