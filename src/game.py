@@ -326,7 +326,11 @@ class Dia1(EstadoProgresion):
             f"No te vas a la cama hasta que saques {juego.tortillas_objetivo} tortillas.",
             "¡Ponte a cocinar ya!"
         ]
-        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
+
+        #engadido callback para actuvar o tutorial da cociña
+        def activar_tutorial():
+            juego.cocina.tutorial_activo = True
+        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo, callback_fin=activar_tutorial))
 
     def update(self, juego):
         #transición: unha vez feitas as 3 tortillas, pasa á Noche 1
@@ -899,3 +903,5 @@ class Juego(Escena):
             self._fade_alpha -= 5
             if self._fade_alpha <= 0:
                 self._fade_inicial = False
+        
+        self.cocina.dibujar_tutorial(pantalla, self.camara)
