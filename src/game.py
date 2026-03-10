@@ -630,7 +630,25 @@ class Juego(Escena):
                 #pizarra
                 if evento.key in [pygame.K_e, pygame.K_x]:
                     self.jugador.play_one_shot(f'interact_{self.jugador.last_action_base}')
-
+                    _surf = pygame.display.get_surface()
+                    _reloj = pygame.time.Clock()
+                    _interrupted = False
+                    while self.jugador.one_shot_active:
+                        for _ev in pygame.event.get(pygame.KEYDOWN):
+                            if _ev.key in (pygame.K_e, pygame.K_x):
+                                pygame.event.post(_ev)  # put it back for the outer loop
+                                _interrupted = True
+                                break
+                            pygame.event.post(_ev)  # put back any other key
+                        if _interrupted:
+                            self.jugador.one_shot_active = False
+                            break
+                        self.sprites.update()
+                        self.dibujar(_surf)
+                        pygame.display.flip()
+                        _reloj.tick(60)
+                    if not _interrupted:
+                        pygame.event.clear(pygame.KEYDOWN)
                     #condición 'not self.pizarra_resuelta' para que unha vez resuelta a pizarra, non se poida volver a interactuar con ela
                     if not self.pizarra_resuelta and self.zona_pizarra.colliderect(self.jugador.hitbox):
                         from escena_pizarra import EscenaPizarra
