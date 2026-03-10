@@ -46,6 +46,7 @@ class GestorAudio:
         self.cargar_sonido("click_menu_fw", os.path.join(SFX_FILE, "click_menu_fw.wav")) # UI
         self.cargar_sonido("click_menu_bw", os.path.join(SFX_FILE, "click_menu_bw.wav"))
         self.cargar_sonido("click_menu_big", os.path.join(SFX_FILE, "click_menu_big.wav"))
+        self.cargar_sonido("burbuja_texto", os.path.join(SFX_FILE, "burbuja_texto.wav"))
         self.cargar_sonido("pasos", os.path.join(SFX_FILE, "footsteps.wav")) # Movimiento del personaje
         self.cargar_sonido("coger_item", os.path.join(SFX_FILE, "coger_item.wav")) # Interacciones
         self.cargar_sonido("dejar_item", os.path.join(SFX_FILE, "dejar_item.wav"))
@@ -56,7 +57,14 @@ class GestorAudio:
         self.cargar_sonido("voz_narrador", os.path.join(SFX_FILE, "blip_narrador.wav")) # Voces (blips)
         self.cargar_sonido("voz_michel", os.path.join(SFX_FILE, "blip_michel.wav"))
         self.cargar_sonido("voz_michel_grave", os.path.join(SFX_FILE, "blip_michel_grave.wav"))
+        self.cargar_sonido("voz_carlitos", os.path.join(SFX_FILE, "blip_carlitos.wav"))
         self.cargar_sonido("golpe_sarten", os.path.join(SFX_FILE, "golpe_sarten.wav")) # Cutscene inicial
+        self.cargar_sonido("m_buenos_dias_papi", os.path.join(SFX_FILE, "michel_buenos_dias_papi.wav")) # Frasecitas de Michel
+        self.cargar_sonido("m_buenos_dias_pichi", os.path.join(SFX_FILE, "michel_buenos_dias_pichi.wav"))
+        self.cargar_sonido("m_buenas_noches", os.path.join(SFX_FILE, "michel_buenas_noches.wav"))
+        self.cargar_sonido("m_una_tortillita", os.path.join(SFX_FILE, "michel_una_tortillita.wav"))
+        self.cargar_sonido("m_risa_malevola", os.path.join(SFX_FILE, "michel_risa_malevola.wav"))
+        self.cargar_sonido("m_amenaza", os.path.join(SFX_FILE, "michel_te_amenaza.wav"))
 
         # Diccionario de música. La música no se carga directamente:
         self.musica["cocina"] = os.path.join(MUSIC_FILE, "Cocina.mp3")
@@ -69,7 +77,7 @@ class GestorAudio:
         self.canal_ui = pygame.mixer.Channel(0) # Interfaz de Usuario (UI)
         self.canal_personaje = pygame.mixer.Channel(1) # Personaje principal (pasos...)
         self.canal_accion = pygame.mixer.Channel(2) # Acciones del personaje (coger ítems, dejar ítems...)
-        self.canal_texto = pygame.mixer.Channel(3) # Texto y diálogo (cinemática inicial...)
+        self.canal_texto = pygame.mixer.Channel(3) # Texto y diálogo (cinemática inicial...). NO voces de Michel
     
     # Cargar un sonido usando "pygame.mixer.Sound":
     def cargar_sonido(self, nombre, ruta):

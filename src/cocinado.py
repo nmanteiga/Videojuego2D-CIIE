@@ -516,6 +516,9 @@ class XestorCocina:
                 if self.tutorial_activo:
                     if evento.key == pygame.K_SPACE:
                         self.tutorial_activo = False
+
+                        # Se reproduce este sonido tras ver el tutorial, cuando comienza el primer día:
+                        self.audio.reproducir_sonido("m_una_tortillita")
                     return
                 if evento.key == pygame.K_e:   self.accion_e()
                 elif evento.key == pygame.K_x: self.accion_x()

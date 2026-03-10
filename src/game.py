@@ -352,6 +352,9 @@ class EstadoProgresion:
     def update(self, juego): pass
 
 class Dia1(EstadoProgresion):
+    def __init__(self):
+        self.audio = GestorAudio()
+        
     def entrar(self, juego):
         print("Entrando al Día 1")
         juego.es_de_noche = False
@@ -361,6 +364,8 @@ class Dia1(EstadoProgresion):
 
         juego._fade_inicial = False
         juego._fade_alpha = 0
+
+        self.audio.reproducir_sonido("m_buenos_dias_papi")
         
         #lanzamos o diálogo inicial usando a nosa nova escena
         from escena_dialogo import EscenaDialogo
@@ -370,10 +375,12 @@ class Dia1(EstadoProgresion):
             "¡Ponte a cocinar ya!"
         ]
 
-        #engadido callback para actuvar o tutorial da cociña
+        #engadido callback para activar o tutorial da cociña
         def activar_tutorial():
+            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
             juego.cocina.tutorial_activo = True
-        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo, callback_fin=activar_tutorial))
+
+        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo, "voz_michel", callback_fin=activar_tutorial))
 
     def update(self, juego):
         #transición: unha vez feitas as 3 tortillas, pasa á Noche 1
@@ -383,9 +390,10 @@ class Dia1(EstadoProgresion):
             
             #ao terminar de ler, cambiamos de estado a Noche 1
             def pasar_a_noche():
+                self.audio.reproducir_sonido("m_buenas_noches")
                 juego.cambiar_estado(Noche1())
                 
-            juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo_fin, pasar_a_noche))
+            juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo_fin, "voz_michel", pasar_a_noche))
             #para evitar bucles infinitos
             juego.cocina.puntos = 0 
 
@@ -402,12 +410,17 @@ class Noche1(EstadoProgresion):
 
 
 class Dia2(EstadoProgresion):
+    def __init__(self):
+        self.audio = GestorAudio()
+
     def entrar(self, juego):
         juego.es_de_noche = False
         juego.tortillas_objetivo = 3 #cambiar
         juego.cocina.puntos = 0
         juego.cocina_bloqueada = True #o muro da cociña está bloqueado para obligar a cociñar
         juego.actualizar_sala()
+
+        self.audio.reproducir_sonido("m_buenos_dias_pichi")
         
         from escena_dialogo import EscenaDialogo
         dialogo = [
@@ -418,19 +431,28 @@ class Dia2(EstadoProgresion):
             f"Ayer estuviste vagonetas.",
             f"Hoy quiero {juego.tortillas_objetivo} tortillas. ¡A los fogones!"
         ]
-        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
+
+        # Se usa callback para añadir diálogo tras el texto:
+        def tras_dialogo2():
+            self.audio.reproducir_sonido("m_una_tortillita")
+        
+        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo, "voz_michel", tras_dialogo2))
 
     def update(self, juego):
         if juego.cocina.puntos >= juego.tortillas_objetivo:
             from escena_dialogo import EscenaDialogo
             dialogo_fin = ["¡Ya era hora!", "Cerramos por hoy. A mimir."]
             def pasar_a_noche2():
+                self.audio.reproducir_sonido("m_buenas_noches")
                 juego.cambiar_estado(Noche2()) #pasamos á noite 2
-            juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo_fin, pasar_a_noche2))
+            juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo_fin, "voz_michel", pasar_a_noche2))
             juego.cocina.puntos = 0
 
 
 class Noche2(EstadoProgresion):
+    def __init__(self):
+        self.audio = GestorAudio()
+
     def entrar(self, juego):
         print("Entrando a la Noche 2 - Puerta Desbloqueada")
         juego.es_de_noche = True
@@ -445,21 +467,27 @@ class Noche2(EstadoProgresion):
             #damos 150 píxeles de marxe para que a cámara termine o scroll
             if juego.jugador.hitbox.left > (juego.puerta_cocina.right + 150):
                 self.mensaje_mostrado = True #marcamos pa evitar bucles infinitos
-                
+
+                self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                 from escena_dialogo import EscenaDialogo
                 dialogo = [
                     "Anda, hay una puerta al final del pasillo...",
                     "Debería ir a investigar."
                 ]
-                juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
+                juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo, "voz_carlitos"))
 
 class Dia3(EstadoProgresion):
+    def __init__(self):
+        self.audio = GestorAudio()
+
     def entrar(self, juego):
         juego.es_de_noche = False
         juego.tortillas_objetivo = 5 #cambiar
         juego.cocina.puntos = 0
         juego.cocina_bloqueada = True #cerramos a cociña de novo
         juego.actualizar_sala()
+
+        self.audio.reproducir_sonido("m_buenos_dias_pichi")
         
         from escena_dialogo import EscenaDialogo
         dialogo = [
@@ -467,15 +495,21 @@ class Dia3(EstadoProgresion):
             f"Como castigo, hoy me vas a hacer {juego.tortillas_objetivo} tortillas.",
             "¡Venga, dale a esos huevos!"
         ]
-        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo))
+
+        # Se usa callback para añadir diálogo tras el texto:
+        def tras_dialogo3():
+            self.audio.reproducir_sonido("m_risa_malevola")
+
+        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo, "voz_michel", tras_dialogo3))
 
     def update(self, juego):
         if juego.cocina.puntos >= juego.tortillas_objetivo:
             from escena_dialogo import EscenaDialogo
             dialogo_fin = ["¡Por fin primo!", "Ya cayó la noche..."]
             def pasar_a_noche3():
+                self.audio.reproducir_sonido("m_buenas_noches")
                 juego.cambiar_estado(Noche3())
-            juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo_fin, pasar_a_noche3))
+            juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo_fin, "voz_michel", pasar_a_noche3))
             juego.cocina.puntos = 0
 
 class Noche3(EstadoProgresion):
@@ -625,7 +659,7 @@ class Juego(Escena):
                 if evento.key == pygame.K_t:
                     self.cocina.puntos += 1
                     print(f"DEBUG: Tortilla añadida. Llevas {self.cocina.puntos} tortillas.")
-                    self.audio.reproducir_sonido("campana", self.audio.canal_ui)
+                    self.audio.reproducir_sonido("campana", self.audio.canal_accion)
 
                 #pizarra
                 if evento.key in [pygame.K_e, pygame.K_x]:
@@ -652,7 +686,7 @@ class Juego(Escena):
                     #condición 'not self.pizarra_resuelta' para que unha vez resuelta a pizarra, non se poida volver a interactuar con ela
                     if not self.pizarra_resuelta and self.zona_pizarra.colliderect(self.jugador.hitbox):
                         from escena_pizarra import EscenaPizarra
-                        self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
+                        self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                         
                         #patrón Callback: pasamos 'self.superar_pizarra' a escena
                         escena_pizz = EscenaPizarra(self.director, self.superar_pizarra)
@@ -661,19 +695,20 @@ class Juego(Escena):
                     #culler (Solo Noche 1)
                     if isinstance(self.estado_actual, Noche1) and not self.tiene_cuchara and self.zona_cuchara.colliderect(self.jugador.hitbox):
                         from escena_dialogo import EscenaDialogo
-                        self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
+                        self.audio.reproducir_sonido("coger_item", self.audio.canal_accion)
                         self.tiene_cuchara = True
                         dialogo = ["¡Has encontrado una cuchara sucia escondida!", "Quizás sirva para excavar en esa pared de la derecha..."]
-                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_narrador"))
 
                     #pared/burato (Solo Noche 1)
                     if isinstance(self.estado_actual, Noche1) and self.zona_agujero.colliderect(self.jugador.hitbox):
                         from escena_dialogo import EscenaDialogo
                         if not self.tiene_cuchara:
+                            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                             dialogo = ["La pared de aquí parece frágil...", "Pero necesitas una herramienta para excavar."]
-                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_narrador"))
                         else:
-                            self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
+                            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                             self.agujero_excavado = True
                             #Carlitos non pode escapar porque se fai de día
                             dialogo = [
@@ -684,30 +719,30 @@ class Juego(Escena):
                             ]
                             def fin_excavar():
                                 self.cambiar_estado(Dia2())
-                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo, fin_excavar))
+                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_narrador", fin_excavar))
 
                             
                     #diálogos de portas bloqueadas
                     #Noche 2: o laberinto está bloqueado
                     if isinstance(self.estado_actual, Noche2) and self.bloqueo_laberinto.inflate(20, 20).colliderect(self.jugador.hitbox):
                         from escena_dialogo import EscenaDialogo
-                        self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                        self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                         dialogo = ["Debería explorar esta zona otro día."]
-                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_carlitos"))
 
                     #Noche 3: a sala da pizarra está fechada
                     if isinstance(self.estado_actual, Noche3) and self.puerta_aula.inflate(20, 20).colliderect(self.jugador.hitbox):
                         from escena_dialogo import EscenaDialogo
-                        self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                        self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                         dialogo = ["Aquí no tengo nada más que hacer."]
-                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_carlitos"))
 
                     #laberinto rematado: mensaxe de ir ao final
                     if self.room2_event.key_collected and self.bloqueo_laberinto.inflate(20, 20).colliderect(self.jugador.hitbox):
                         from escena_dialogo import EscenaDialogo
-                        self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                        self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                         dialogo = ["Aquí no tengo nada más que hacer."]
-                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+                        self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_carlitos"))
 
 
                     #porta final (escape)
@@ -716,7 +751,7 @@ class Juego(Escena):
                         
                         #comprobar se ten ambas chaves
                         if self.pizarra_resuelta and self.room2_event.key_collected:
-                            self.audio.reproducir_sonido("click_menu_fw", self.audio.canal_ui)
+                            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                             dialogo = [
                                 "Las dos llaves encajan perfectamente.",
                                 "La puerta se abre con un chirrido.",
@@ -725,16 +760,16 @@ class Juego(Escena):
                             def fin_juego():
                                 #fecha o xogo
                                 self.director.salirPrograma() 
-                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo, fin_juego))
+                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_narrador", fin_juego))
                         
                         #se falta algunha chave
                         else:
-                            self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                             dialogo = [
                                 "La puerta está en modo 'no molestar'.",
                                 "Hay 2 cerrojos."
                             ]
-                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo))        
+                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_carlitos"))        
 
     
     # Se gestionan las salas en las que se encuentra el jugador (para audio, y quizá otros).
@@ -782,7 +817,7 @@ class Juego(Escena):
             "Pero parece que está amaneciendo...",
             "Deberías volver rápido a la cocina, antes de que Michel te pille."
         ]
-        self.director.apilarEscena(EscenaDialogo(self.director, dialogo))
+        self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_narrador"))
         
         #avisamos ao xogo que estamos na fase de volta á cociña
         self.debe_volver_a_cocina = True
@@ -849,12 +884,14 @@ class Juego(Escena):
             if not getattr(self, '_mensaje_llaves_mostrado', False):
                 if self.jugador.hitbox.left > (self.bloqueo_laberinto.right + 50):
                     self._mensaje_llaves_mostrado = True #marcamos que xa o viu
+
+                    self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                     from escena_dialogo import EscenaDialogo
                     dialogo = [
                         "Ya tengo las 2 llaves.", 
                         "Debería ir a la puerta al final de este pasillo."
                     ]
-                    self.director.apilarEscena(EscenaDialogo(self.director, dialogo))    
+                    self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_carlitos"))    
 
 
         self.jugador.set_extra_collision_rects(colisiones_extra)

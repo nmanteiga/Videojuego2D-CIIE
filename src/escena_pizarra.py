@@ -118,6 +118,7 @@ class EscenaPizarra(Escena):
             #lanzamos diálogo logo de fechar
             for opcion in self.opciones:
                 if opcion.estado == "CORRECTO" and self.callback_acierto:
+                    self.audio.reproducir_sonido("coger_item", self.audio.canal_accion)
                     self.callback_acierto() #arranca diálogo
 
     def dibujar(self, pantalla):

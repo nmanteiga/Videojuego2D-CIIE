@@ -5,11 +5,13 @@ from gestorAudio import GestorAudio
 
 class EscenaDialogo(Escena):
     #patrón Estado: esta escena apílase sobre o xogo para mostrar diálogos, destruíndose ao terminar de ler
-    def __init__(self, director, textos, callback_fin=None):
+    def __init__(self, director, textos, voz = "voz_narrador", callback_fin=None):
         super().__init__(director)
         self.audio = GestorAudio()
         self.textos = textos
         self.indice_texto = 0
+        self.voz = voz
+        self.caracter_anterior = 0
         self.callback_fin = callback_fin
         
         HOME = os.path.dirname(__file__)
@@ -18,7 +20,7 @@ class EscenaDialogo(Escena):
         
         #animación de escritura
         self.caracteres_mostrados = 0
-        self.velocidad_escritura = 0.5
+        self.velocidad_escritura = 0.1 # velocidade algo mais lenta
         
         #dimensión caixa de texto
         self.caja_rect = pygame.Rect(40, ALTO - 120, ANCHO - 80, 100)
@@ -28,14 +30,20 @@ class EscenaDialogo(Escena):
         #se rematamos de ler, non actualizamos nada
         if self.indice_texto >= len(self.textos):
             return
-
+        
         texto_actual = self.textos[self.indice_texto]
+        
         if self.caracteres_mostrados < len(texto_actual):
             self.caracteres_mostrados += self.velocidad_escritura * tiempo_pasado
-            
+
             #efecto de son cada par de letras
-            if int(self.caracteres_mostrados) % 3 == 0 and not self.audio.canal_texto.get_busy():
-                self.audio.reproducir_sonido("voz_michel", self.audio.canal_texto)
+            caracteres_visibles = int(self.caracteres_mostrados) # caracteres_visibles é agora un int, co que podemos traballar
+            if caracteres_visibles > self.caracter_anterior and caracteres_visibles <= len(texto_actual):
+                caracter_actual = texto_actual[caracteres_visibles - 1]
+                if caracter_actual != " " and caracteres_visibles % 2 == 0:
+                    self.audio.canal_texto.stop()
+                    self.audio.reproducir_sonido(self.voz, self.audio.canal_texto) # se reproduce a voz indicada no init
+            self.caracter_anterior = caracteres_visibles
 
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
@@ -53,6 +61,7 @@ class EscenaDialogo(Escena):
                     #se remata pasa ao seguinte
                     self.indice_texto += 1
                     self.caracteres_mostrados = 0
+                    self.caracter_anterior = 0
                     
                     #saímos se non hai máis textos
                     if self.indice_texto >= len(self.textos):
