@@ -871,6 +871,8 @@ class Juego(Escena):
         self._render_surf.blit(self.frente, self.camara.aplicar_rect(self.frente.get_rect()))
         self.cocina.dibujar_highlight_frente(self._render_surf, self.camara)
         self.cocina.dibujar_bol_frente(self._render_surf, self.camara)
+        self.cocina.dibujar_taboa_frente(self._render_surf, self.camara)
+        self.cocina.dibujar_prato_frente(self._render_surf, self.camara)
 
         
         self._render_surf.blit(self.frente_pasllo, self.camara.aplicar_rect(self.frente_pasllo.get_rect()))

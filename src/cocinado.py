@@ -714,6 +714,18 @@ class XestorCocina:
             bol = _estacion_sprites.get("bol.png")
         self._dibujar_sprite_estacion(pantalla, camara, bol, self.cunca.rect, offset_x=0, offset_y=-6)
 
+    def dibujar_taboa_frente(self, pantalla, camara):
+        # Táboa cortar: debuxar o ingrediente colocado enriba
+        if self.taboa.ingrediente_na_estacion is not None:
+            sprite = _sprites_man.get(self.taboa.ingrediente_na_estacion.estado)
+            self._dibujar_sprite_estacion(pantalla, camara, sprite, self.taboa.rect, offset_x=0, offset_y=-15)
+
+    def dibujar_prato_frente(self, pantalla, camara):
+        # Prato: debuxar o ingrediente colocado enriba
+        if self.prato.ingrediente_na_estacion is not None:
+            sprite = _sprites_man.get(self.prato.ingrediente_na_estacion.estado)
+            self._dibujar_sprite_estacion(pantalla, camara, sprite, self.prato.rect, offset_x=0, offset_y=-4)
+
     def dibujar_item_en_man(self, pantalla, camara):
         if self.man is None:
             return
