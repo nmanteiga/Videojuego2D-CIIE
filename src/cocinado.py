@@ -17,6 +17,8 @@ PATACA_FRITA = "pataca_frita"
 
 OVO_ENTEIRO = "ovo_enteiro"
 OVO_BATIDO = "ovo_batido"
+BOL_OVO = "bol_ovo"
+BOL_PATACA = "bol_pataca"
 
 MESTURA_TORTILLA = "mestura_tortilla"
 TORTILLA = "tortilla"
@@ -57,6 +59,42 @@ def inicializar_highlights(graphics_dir):
         "highlight_entrega.png",
     ):
         _cargar_highlight(graphics_dir, nome)
+
+_ITEM_SCALE = 4
+_item_archivos = {
+    PATACA_ENTEIRA:   "pataca.png",
+    PATACA_CORTADA:   "pataca_cortada.png",
+    PATACA_FRITA:     "pataca_frita.png",
+    OVO_ENTEIRO:      "ovo.png",
+    BOL_OVO:       "bol_ovo.png",
+    BOL_PATACA:       "bol_pataca.png",
+    MESTURA_TORTILLA: "bol_mezcla.png",
+    TORTILLA:         "plato_tortilla.png",
+}
+
+_sprites_man = {}
+
+_ESTACION_SCALE = 4.5
+_estacion_sprites = {}
+
+def _cargar_sprites_estacion(graphics_dir):
+    env_dir = os.path.join(graphics_dir, "environments")
+    for nome in ("sarten.png", "sarten_cocinando.png", "bol.png", "bol_mezcla.png"):
+        ruta = os.path.join(env_dir, nome)
+        img = pygame.image.load(ruta).convert_alpha()
+        w = img.get_width()  * _ESTACION_SCALE
+        h = img.get_height() * _ESTACION_SCALE
+        _estacion_sprites[nome] = pygame.transform.scale(img, (w, h))
+
+def _cargar_sprites_man(graphics_dir):
+    global _sprites_man
+    env_dir = os.path.join(graphics_dir, "environments")
+    for estado, fname in _item_archivos.items():
+        ruta = os.path.join(env_dir, fname)
+        img = pygame.image.load(ruta).convert_alpha()
+        w = img.get_width()  * _ITEM_SCALE
+        h = img.get_height() * _ITEM_SCALE
+        _sprites_man[estado] = pygame.transform.scale(img, (w, h))
 
 class Ingrediente:
     def __init__(self, estado):
@@ -301,6 +339,8 @@ class XestorCocina:
         self.man = None
 
         inicializar_highlights(graphics_dir)
+        _cargar_sprites_man(graphics_dir)
+        _cargar_sprites_estacion(graphics_dir)
 
         pos = posicions or {
             "neveira": pygame.Rect( 16, 2650, 70, 100),
@@ -523,3 +563,49 @@ class XestorCocina:
                 True, (200, 255, 200)
             )
             pantalla.blit(txt_est, (10, 85))
+
+    def _dibujar_sprite_estacion(self, pantalla, camara, sprite, rect, offset_x=0, offset_y=0):
+        if sprite is None:
+            return
+        draw_x = rect.centerx - sprite.get_width() // 2 + offset_x
+        draw_y = rect.centery - sprite.get_height() // 2 + offset_y
+        pos = camara.aplicar_rect(pygame.Rect(draw_x, draw_y, 0, 0))
+        pantalla.blit(sprite, (pos.x, pos.y))
+
+    def dibujar_estaciones(self, pantalla, camara):
+        # Sartén (Fogon): bajo la capa frente
+        if self.Fogon.ingrediente_na_estacion is not None:
+            sarten = _estacion_sprites.get("sarten_cocinando.png")
+        else:
+            sarten = _estacion_sprites.get("sarten.png")
+        self._dibujar_sprite_estacion(pantalla, camara, sarten, self.Fogon.rect, offset_x=-7, offset_y=7)
+
+    def dibujar_bol_frente(self, pantalla, camara):
+        # Bol (Cunca): por encima de la capa frente
+        if self.cunca.ovo is not None or self.cunca.pataca_frita is not None or self.cunca.mestura_lista:
+            bol = _estacion_sprites.get("bol_mezcla.png")
+        else:
+            bol = _estacion_sprites.get("bol.png")
+        self._dibujar_sprite_estacion(pantalla, camara, bol, self.cunca.rect, offset_x=0, offset_y=-6)
+
+    def dibujar_item_en_man(self, pantalla, camara):
+        if self.man is None:
+            return
+        sprite = _sprites_man.get(self.man.estado)
+        if sprite is None:
+            return
+
+        # Calcular escala: el sprite del personaje es 16x16 antes de escalar
+        pixel_scale = self.xogador.image.get_width() / 16
+
+        # Pixel de la mano según dirección (11 mirando derecha, espejo 4 mirando izquierda)
+        hand_px = 11 if self.xogador.facing_right else 4
+        hand_world_x = self.xogador.rect.x + int(hand_px * pixel_scale)
+        hand_world_y = self.xogador.rect.y + int(12 * pixel_scale)
+
+        # Centrar el sprite del item en la mano
+        mundo_x = hand_world_x - sprite.get_width() // 2
+        mundo_y = hand_world_y - sprite.get_height() // 2
+
+        pos = camara.aplicar_rect(pygame.Rect(mundo_x, mundo_y, 0, 0))
+        pantalla.blit(sprite, (pos.x, pos.y))

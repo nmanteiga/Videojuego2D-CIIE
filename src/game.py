@@ -26,12 +26,16 @@ ASSESTS_FILE = os.path.join(HOME, "..", "assets")
 GRAPHICS_FILE = os.path.join(ASSESTS_FILE, "graphics")
 
 FONDO_IMG = os.path.join(GRAPHICS_FILE, "environments", "fondo_completo.png")  
+FONDO_IMG_PARED = os.path.join(GRAPHICS_FILE, "environments", "fondo_completo_pared.png")  
+FONDO_IMG_POSTER = os.path.join(GRAPHICS_FILE, "environments", "fondo_completo_poster.png")  
 FRENTE_IMG = os.path.join(GRAPHICS_FILE, "environments", "capa_frente.png")
 COLISION_IMG = os.path.join(GRAPHICS_FILE, "environments", "colisiones2.png")
 FRENTE_CLASE1 = os.path.join(GRAPHICS_FILE, "environments", "capa_frente_clase1.png")
+FRENTE_PASILLO = os.path.join(GRAPHICS_FILE, "environments", "capa_frente_pasllo.png")
 
 PERSONAJE_IDLE = os.path.join(GRAPHICS_FILE, "characters", "Idle sheet info.png")
 PERSONAJE_MOVE = os.path.join(GRAPHICS_FILE, "characters", "Walk-Sheet.png")
+PERSONAJE_INTERACT = os.path.join(GRAPHICS_FILE, "characters", "Interact-Sheet.png")
 
 def _preescalar_animaciones(animaciones, total_scale):
     """Escala y voltea todos los frames UNA sola vez al arrancar."""
@@ -150,6 +154,7 @@ class Player(pygame.sprite.Sprite):
         try:
             sprite_sheet = SpriteSheet(PERSONAJE_IDLE)
             walk_sheet = SpriteSheet(PERSONAJE_MOVE)
+            interact_sheet = SpriteSheet(PERSONAJE_INTERACT)
             raw = {
                 'idle_down': sprite_sheet.load_strip((0, 0, 16, 16), 4),
                 'idle_dup': sprite_sheet.load_strip((0, 16, 16, 16), 4),
@@ -161,6 +166,11 @@ class Player(pygame.sprite.Sprite):
                 'walk_r': walk_sheet.load_strip((0, 32, 16, 16), 4),
                 'walk_ddown': walk_sheet.load_strip((0, 48, 16, 16), 4),
                 'walk_up': walk_sheet.load_strip((0, 64, 16, 16), 4),
+                'interact_down': interact_sheet.load_strip((0, 0, 16, 16), 4),
+                'interact_dup': interact_sheet.load_strip((0, 16, 16, 16), 4),
+                'interact_r': interact_sheet.load_strip((0, 32, 16, 16), 4),
+                'interact_ddown': interact_sheet.load_strip((0, 48, 16, 16), 4),
+                'interact_up': interact_sheet.load_strip((0, 64, 16, 16), 4),
             }
             self.animations, self.animations_flip = _preescalar_animaciones(raw, self.total_scale)
             # Máscaras pre-calculadas — nunca más en update()
@@ -202,6 +212,16 @@ class Player(pygame.sprite.Sprite):
         self.controls_enabled = True
         self.extra_collision_rects = []
 
+        self.one_shot_active = False
+        self.one_shot_animation = None
+
+    def play_one_shot(self, animation_name):
+        self.one_shot_active = True
+        self.one_shot_animation = animation_name
+        self.current_animation = animation_name
+        self.current_frame = 0
+        self.animation_timer = 0
+
     def set_extra_collision_rects(self, rects):
         self.extra_collision_rects = list(rects)
         
@@ -218,6 +238,29 @@ class Player(pygame.sprite.Sprite):
         return False
 
     def update(self):
+        if self.one_shot_active:
+            self.animation_timer += 2 * self.animation_speed
+            if self.animation_timer >= 1:
+                self.animation_timer = 0
+                self.current_frame += 1
+                if self.current_frame >= len(self.animations[self.one_shot_animation]):
+                    self.one_shot_active = False
+                    self.one_shot_animation = None
+                    self.current_frame = 0
+                    self.current_animation = f'idle_{self.last_action_base}'
+            if self.one_shot_active:
+                anim = self.one_shot_animation
+                frame = min(self.current_frame, len(self.animations[anim]) - 1)
+                if self.facing_right:
+                    self.image = self.animations[anim][frame]
+                    self.mask  = self.masks[anim][frame]
+                else:
+                    self.image = self.animations_flip[anim][frame]
+                    self.mask  = self.masks_flip[anim][frame]
+                self.rect = self.image.get_rect()
+                self.rect.center = self.hitbox.center
+                return
+
         teclas = pygame.key.get_pressed() if self.controls_enabled else None
         dx, dy = 0, 0
         
@@ -457,9 +500,11 @@ class Juego(Escena):
         self.frente = pygame.image.load(FRENTE_IMG).convert_alpha()
         self.frente = pygame.transform.scale(self.frente, (ANCHO_MAPA, ALTO_MAPA))
 
-        
         self.frente_clase1 = pygame.image.load(FRENTE_CLASE1).convert_alpha()
         self.frente_clase1 = pygame.transform.scale(self.frente_clase1, (ANCHO_MAPA, ALTO_MAPA))
+
+        self.frente_pasllo = pygame.image.load(FRENTE_PASILLO).convert_alpha()
+        self.frente_pasllo = pygame.transform.scale(self.frente_pasllo, (ANCHO_MAPA, ALTO_MAPA))
 
         s = COLISION_SCALE_DOWN
         col_img = pygame.image.load(COLISION_IMG).convert_alpha()
@@ -580,6 +625,8 @@ class Juego(Escena):
 
                 #pizarra
                 if evento.key in [pygame.K_e, pygame.K_x]:
+                    self.jugador.play_one_shot(f'interact_{self.jugador.last_action_base}')
+
                     #condición 'not self.pizarra_resuelta' para que unha vez resuelta a pizarra, non se poida volver a interactuar con ela
                     if not self.pizarra_resuelta and self.zona_pizarra.colliderect(self.jugador.hitbox):
                         from escena_pizarra import EscenaPizarra
@@ -808,14 +855,21 @@ class Juego(Escena):
         self._render_surf.blit(self.fondo, self.camara.aplicar_rect(self.fondo.get_rect()))
         self.room2_event.draw_objects(self._render_surf, self.camara)
         self.cocina.dibujar_highlight(self._render_surf, self.camara)
+        self.cocina.dibujar_estaciones(self._render_surf, self.camara)
 
         for sprite in self.sprites:
             self._render_surf.blit(sprite.image, self.camara.aplicar(sprite))
+
+        self.cocina.dibujar_item_en_man(self._render_surf, self.camara)
 
         self.room2_event.draw_front(self._render_surf, self.camara)
 
         self._render_surf.blit(self.frente, self.camara.aplicar_rect(self.frente.get_rect()))
         self.cocina.dibujar_highlight_frente(self._render_surf, self.camara)
+        self.cocina.dibujar_bol_frente(self._render_surf, self.camara)
+
+        
+        self._render_surf.blit(self.frente_pasllo, self.camara.aplicar_rect(self.frente_pasllo.get_rect()))
 
         sala_clase1 = self.salas[1]  # Sala del medio derecha
         if sala_clase1.collidepoint(self.jugador.hitbox.center):
@@ -828,7 +882,7 @@ class Juego(Escena):
             )
             self.colision_debug_overlay.set_alpha(80)
 
-            #puerta aula tipo test (AZUL)
+            #puerta aula tipo test (AZUL) 
             rect_cam_puerta = self.camara.aplicar_rect(self.puerta_aula)
             pygame.draw.rect(self._render_surf, (0, 0, 255), rect_cam_puerta, 3)
             
