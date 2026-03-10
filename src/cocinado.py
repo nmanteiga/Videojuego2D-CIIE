@@ -177,7 +177,7 @@ class CaixaPatacas(FonteIngrediente):
 
 
 class TaboaCortar(Estacion):
-    PULSACIONS_NECESARIAS = 20
+    PULSACIONS_NECESARIAS = 10
 
     def __init__(self, rect_mapa):
         super().__init__("Táboa Cortar", rect_mapa)
@@ -207,7 +207,7 @@ class TaboaCortar(Estacion):
 
 
 class Fogon(Estacion):
-    TEMPO_COCCION_MS = 10_000
+    TEMPO_COCCION_MS = 5_000 # Cambiado de 10 a 5 segundos
     ACEPTA = {
         PATACA_CORTADA: PATACA_FRITA,
         MESTURA_TORTILLA: TORTILLA,
@@ -261,7 +261,7 @@ class Fogon(Estacion):
 
 
 class Cunca(Estacion):
-    PULSACIONS_BATER = 30
+    PULSACIONS_BATER = 10
 
     def __init__(self, rect_mapa):
         super().__init__("Cunca", rect_mapa)
@@ -370,6 +370,7 @@ class XestorCocina:
         self._estacion_preto = None
         self.primeira_tortilla_feita = False
         self.deuda = 3.00
+        self.tutorial_activo = False
 
     def sumar_punto(self):
         self.puntos += 1
@@ -451,7 +452,7 @@ class XestorCocina:
         return (self.caixa_patacas, "highlight_patacas.png")
 
     def _estacion_permitida(self, est):
-        #durante a primeira tortilla, só se pode interactuar coa estación highlighteada.
+        #durante a primeira tortilla, só se pode interactuar coa estación highlighteada
         if self.primeira_tortilla_feita:
             return True
         est_guia, _ = self._highlight_activo()
@@ -512,10 +513,16 @@ class XestorCocina:
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
             if evento.type == pygame.KEYDOWN:
+                if self.tutorial_activo:
+                    if evento.key == pygame.K_SPACE:
+                        self.tutorial_activo = False
+                    return
                 if evento.key == pygame.K_e:   self.accion_e()
                 elif evento.key == pygame.K_x: self.accion_x()
 
     def update(self, tempo_ms):
+        if self.tutorial_activo:
+            return
         self._estacion_preto = self.get_estacion_preto()
         for est in self.estacions:
             est.update(tempo_ms)
@@ -526,6 +533,67 @@ class XestorCocina:
         "highlight_patacas.png",
         "highlight_entrega.png",
     }
+
+    #tutorial para o cociñado paso a paso e controis xerais
+
+    _TUTORIAL_ITEMS = [
+        ("Caixa de Patacas",   "E: Coller patacas"),
+        ("Táboa de Cortar",    "E: Deixar patacas · X (×10): Cortar · E: Coller patacas cortadas"),
+        ("Fogón",              "E: Deixar patacas cortadas · Agardar 5s · E: Coller patacas fritas"),
+        ("Prato",              "E: Deixar patacas fritas"),
+        ("Neveira",            "E: Coller ovos"),
+        ("Cunca",              "E: Deixar ovos· X (×10): Bater"),
+        ("Prato",              "E: Coller patacas fritas"),
+        ("Cunca",              "E: Deixar patacas fritas· E: Coller mestura"),
+        ("Fogón",              "E: Deixar mestura · Agardar 5s · E: Coller tortilla"),
+        ("Mostrador",          "E: Entregar tortilla"),
+    ]
+
+    def dibujar_tutorial(self, pantalla, camara):
+        if not self.tutorial_activo:
+            return
+
+        w, h = pantalla.get_size()
+        overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        pantalla.blit(overlay, (0, 0))
+
+        n_items = len(self._TUTORIAL_ITEMS)
+        panel_w = 620
+        panel_h = 44 + n_items * 38 + 80
+        panel_x = (w - panel_w) // 2
+        panel_y = max(10, (h - panel_h) // 2 - 10)
+        panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        panel.fill((20, 20, 30, 220))
+        pygame.draw.rect(panel, (200, 200, 255, 180), (0, 0, panel_w, panel_h), 2, border_radius=10)
+        pantalla.blit(panel, (panel_x, panel_y))
+
+        fonte_titulo = _fonte(18, bold=True)
+        fonte_item   = _fonte(13, bold=False)
+        fonte_hint   = _fonte(14, bold=True)
+
+        titulo = fonte_titulo.render("RECEITA DA TORTILLA", True, (255, 230, 100))
+        pantalla.blit(titulo, (panel_x + (panel_w - titulo.get_width()) // 2, panel_y + 12))
+
+        y = panel_y + 44
+        for nome, desc in self._TUTORIAL_ITEMS:
+            pygame.draw.circle(pantalla, (100, 220, 255), (panel_x + 22, y + 7), 4)
+            txt_nome = fonte_item.render(nome, True, (200, 255, 200))
+            txt_desc = fonte_item.render(desc, True, (200, 200, 200))
+            pantalla.blit(txt_nome, (panel_x + 34, y))
+            pantalla.blit(txt_desc, (panel_x + 34, y + 16))
+            y += 38
+
+        sep_y = panel_y + panel_h - 68
+        pygame.draw.line(pantalla, (100, 100, 150),
+            (panel_x + 20, sep_y), (panel_x + panel_w - 20, sep_y), 1)
+
+        controles = "WASD: Moverse  ·  E: Coller/Deixar  ·  X: Acción  ·  ESC: Pausa"
+        txt_ctrl = fonte_item.render(controles, True, (180, 180, 255))
+        pantalla.blit(txt_ctrl, (panel_x + (panel_w - txt_ctrl.get_width()) // 2, sep_y + 8))
+
+        hint = fonte_hint.render("[ ESPAZO ] para continuar", True, (255, 255, 100))
+        pantalla.blit(hint, (panel_x + (panel_w - hint.get_width()) // 2, panel_y + panel_h - 32))
 
     def dibujar_highlight(self, pantalla, camara):
         est_guia, hl_nome = self._highlight_activo()
@@ -557,12 +625,70 @@ class XestorCocina:
         txt_man  = fonte.render(f"Man: {nome_man}", True, COR_XOGADOR_HUD)
         pantalla.blit(txt_man, (10, 60))
 
+        #version mais descritiva para que o usuario poda saber o que ten diante
+
         if self._estacion_preto:
-            txt_est = fonte.render(
-                f"[E] {self._estacion_preto.nome}  [X] Accion",
-                True, (200, 255, 200)
-            )
-            pantalla.blit(txt_est, (10, 85))
+            est = self._estacion_preto
+
+            if isinstance(est, FonteIngrediente):
+                contido = NOMES_INGREDIENTE.get(est.tipo, est.tipo)
+            elif isinstance(est, Cunca):
+                partes = []
+                if est.ovo:           partes.append(est.ovo.nome())
+                if est.pataca_frita:  partes.append("Patacas fritas")
+                if est.mestura_lista: partes = ["Mestura lista"]
+                contido = ", ".join(partes) if partes else "Baleiro"
+            elif est.ingrediente_na_estacion:
+                contido = est.ingrediente_na_estacion.nome()
+            else:
+                contido = "Baleiro"
+
+            #acción ao pulsar E
+            if isinstance(est, Mostrador):
+                acc_e = "Entregar tortilla" if (self.man and self.man.estado == TORTILLA) else None
+            elif isinstance(est, FonteIngrediente):
+                if self.man and self.man.estado == est.tipo:
+                    acc_e = f"Devolver {NOMES_INGREDIENTE.get(est.tipo, '')}"
+                elif self.man is None:
+                    acc_e = f"Coller {NOMES_INGREDIENTE.get(est.tipo, '')}"
+                else:
+                    acc_e = None
+            elif self.man is not None:
+                acc_e = f"Deixar {self.man.nome()}" if est.pode_recibir(self.man) else None
+            elif est.pode_dar():
+                if isinstance(est, Cunca) and est.mestura_lista:
+                    acc_e = "Coller mestura"
+                elif est.ingrediente_na_estacion:
+                    acc_e = f"Coller {est.ingrediente_na_estacion.nome()}"
+                else:
+                    acc_e = None
+            else:
+                acc_e = None
+
+            #acción ao pulsar X
+            if isinstance(est, TaboaCortar):
+                if est.ingrediente_na_estacion and est.ingrediente_na_estacion.estado == PATACA_ENTEIRA:
+                    acc_x = f"Cortar ({est.progreso}/{est.PULSACIONS_NECESARIAS})"
+                else:
+                    acc_x = None
+            elif isinstance(est, Cunca):
+                if est.ovo and est.ovo.estado == OVO_ENTEIRO:
+                    acc_x = f"Bater ({est.progreso_bater}/{est.PULSACIONS_BATER})"
+                else:
+                    acc_x = None
+            elif isinstance(est, Fogon) and est.cocinando:
+                seg = max(0, (est.TEMPO_COCCION_MS - est.tempo_acumulado) // 1000)
+                acc_x = f"Fritindo... ({seg}s)"
+            else:
+                acc_x = None
+
+            cor = (200, 255, 200)
+            pantalla.blit(fonte.render(f"{est.nome}: {contido}", True, cor), (10, 85))
+            y = 110
+            if acc_e:
+                pantalla.blit(fonte.render(f"E: {acc_e}", True, cor), (10, y)); y += 25
+            if acc_x:
+                pantalla.blit(fonte.render(f"X: {acc_x}", True, cor), (10, y))
 
     def _dibujar_sprite_estacion(self, pantalla, camara, sprite, rect, offset_x=0, offset_y=0):
         if sprite is None:
