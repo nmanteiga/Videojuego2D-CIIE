@@ -644,7 +644,8 @@ class Juego(Escena):
         self.juego_arrancado = False
 
     def eventos(self, lista_eventos):
-        self.cocina.eventos(lista_eventos) 
+        if not self.es_de_noche:
+            self.cocina.eventos(lista_eventos)
         for evento in lista_eventos:
             if evento.type == pygame.QUIT:
                 self.director.salirPrograma()
@@ -894,7 +895,8 @@ class Juego(Escena):
         focus_pos = self.room2_event.update(self.jugador, tiempo_pasado)
 
         self.camara.update(self.jugador, self.salas, focus_world_pos=focus_pos)
-        self.cocina.update(tiempo_pasado)
+        if not self.es_de_noche:
+            self.cocina.update(tiempo_pasado)
 
         self.actualizar_sala()
 
