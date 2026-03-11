@@ -132,5 +132,5 @@ class EscenaDialogo(Escena):
         
         #indicador tecla para pasar o diálogo
         if self.caracteres_mostrados >= len(texto_actual):
-            ind_render = self.fuente.render("ESPACIO >", True, (200, 200, 200))
+            ind_render = self.fuente.render("ESPACIO", True, (200, 200, 200))
             pantalla.blit(ind_render, (self.caja_rect.right - 120, self.caja_rect.bottom - 25))

@@ -748,19 +748,13 @@ class Juego(Escena):
                     #porta final (escape)
                     if self.zona_salida.colliderect(self.jugador.hitbox):
                         from escena_dialogo import EscenaDialogo
+                        from escena_cinematica_final import EscenaCinematicaFinal
                         
                         #comprobar se ten ambas chaves
                         if self.pizarra_resuelta and self.room2_event.key_collected:
                             self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
-                            dialogo = [
-                                "Las dos llaves encajan perfectamente.",
-                                "La puerta se abre con un chirrido.",
-                                "FIN DEL JUEGO"
-                            ]
-                            def fin_juego():
-                                #fecha o xogo
-                                self.director.salirPrograma() 
-                            self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_narrador", fin_juego))
+                            # Mostrar cinemática final con Michel
+                            self.director.apilarEscena(EscenaCinematicaFinal(self.director))
                         
                         #se falta algunha chave
                         else:

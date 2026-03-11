@@ -3,7 +3,7 @@ import os
 from PIL import Image
 from escena import Escena, ANCHO, ALTO
 from game import Juego, FONDO_IMG, GRAPHICS_FILE
-from text import run_cinematics
+from escena_cinematica_principio import run_cinematics
 from gestorAudio import GestorAudio
 
 HOME = os.path.dirname(__file__)
@@ -141,7 +141,6 @@ class MenuPrincipal(Escena):
         self.listaPaneles = {}
         self.listaPaneles['INICIAL'] = PanelInicialGUI(self)
         self.panelActual = 'INICIAL'
-        self._transitioning = False  
         self.audio = GestorAudio() # Audio
 
         # Música del menú de inicio (temporalmente la de escape):
@@ -157,16 +156,13 @@ class MenuPrincipal(Escena):
         self.listaPaneles[self.panelActual].eventos(lista_eventos)
 
     def dibujar(self, pantalla):
-        if self._transitioning:
-            pantalla.fill((0, 0, 0)) 
-        else:
-            self.listaPaneles[self.panelActual].dibujar(pantalla)
+        self.listaPaneles[self.panelActual].dibujar(pantalla)
 
     def ejecutarJuego(self):
         self.audio.reproducir_sonido("click_menu_big", self.audio.canal_ui)
         self.audio.detener_musica(500)
-        self._transitioning = True
         run_cinematics(self.director.screen)
+        pygame.time.delay(100)  # Pequeño delay para que el sistema se recupere
         juego = Juego(self.director)
         self.director.cambiarEscena(juego) 
 

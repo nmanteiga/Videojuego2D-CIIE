@@ -10,11 +10,10 @@ ASSETS_PATH = os.path.join(HOME, "..", "assets")
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-LINE_SPACING = 8  # Espaciado extra entre líneas
+LINE_SPACING = 8  
 WHITE = (240, 240, 240)
 BLACK = (0, 0, 0)
 
-# Variables globales para el módulo
 screen = None
 font = None
 BACKGROUND_IMG = None
@@ -26,13 +25,12 @@ audio = None
 class SaltarCinematica(Exception):
     pass
 
-def check_skip(): #comproba se pulsamos ESC para saltar a cinemática
-    pygame.event.pump()
+def check_skip(): 
     teclas = pygame.key.get_pressed()
     if teclas[pygame.K_ESCAPE]:
         raise SaltarCinematica()
     
-def tempo_espera(ms): #sustituto de pygame.time.delay
+def tempo_espera(ms):
     tiempo_fin = pygame.time.get_ticks() + ms
     while pygame.time.get_ticks() < tiempo_fin:
         check_skip()
@@ -44,24 +42,20 @@ def init_cinematics(pantalla):
     global screen, font, BACKGROUND_IMG, audio
     screen = pantalla
     font = pygame.font.Font(FONT_FILE, 14)
-    # Cargar imagen inicial
     img = pygame.image.load(os.path.join(ASSETS_PATH, "graphics", "cinematica", "bus1.png")).convert()
     BACKGROUND_IMG = pygame.transform.scale(img, (SCREEN_WIDTH, SCREEN_HEIGHT))
     audio = GestorAudio()
 
-# Function to change background image
 def set_background(image_path):
     global BACKGROUND_IMG
     img = pygame.image.load(image_path).convert()
     BACKGROUND_IMG = pygame.transform.scale(img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-# Function to set black background
 def set_black_background():
     global BACKGROUND_IMG
     BACKGROUND_IMG = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
     BACKGROUND_IMG.fill(BLACK)
 
-# Function to load and set character image
 def set_character(image_path, scale=4):
     global CHARACTER_IMG
     if image_path is None:
@@ -115,10 +109,9 @@ def show_item_from_bottom(image_path, scale=1, rise_speed=5, hold_time=2000):
     item = pygame.transform.scale(img, (w, h))
     
     item_x = (SCREEN_WIDTH - w) // 2
-    final_y = SCREEN_HEIGHT - h  # Posición final en la base de la pantalla
-    start_y = SCREEN_HEIGHT  # Empieza fuera de la pantalla (abajo)
+    final_y = SCREEN_HEIGHT - h  
+    start_y = SCREEN_HEIGHT 
     
-    # Animación de subida
     current_y = start_y
     while current_y > final_y:
         for event in pygame.event.get():
@@ -191,19 +184,16 @@ def show_dialogue(dialogue_list, font, color=WHITE, voz = "voz_narrador"):
             screen.blit(BACKGROUND_IMG, (0, 0))
             if CHARACTER_IMG is not None:
                 char_x = (SCREEN_WIDTH - CHARACTER_IMG.get_width()) // 2
-                # Base del personaje justo encima del text box
                 char_y = TEXTBOX_Y - CHARACTER_IMG.get_height()
                 if ITEM_IMG is not None:
-                    # Personaje más a la derecha para superponerse con el item
                     char_x = (SCREEN_WIDTH // 2) - CHARACTER_IMG.get_width() + 40
                 screen.blit(CHARACTER_IMG, (char_x, char_y))
             if ITEM_IMG is not None:
-                # Item más a la izquierda para superponerse con el personaje
                 item_x = (SCREEN_WIDTH // 2) - 40
-                # Base del item justo encima del text box
                 item_y = TEXTBOX_Y - ITEM_IMG.get_height()
                 screen.blit(ITEM_IMG, (item_x, item_y))
-            draw_text_box(TEXTBOX_Y_OFFSET, width=TEXTBOX_WIDTH, height=TEXTBOX_HEIGHT, color=BLACK)
+            show_indicator = current_length >= len(phrase)
+            draw_text_box(TEXTBOX_Y_OFFSET, width=TEXTBOX_WIDTH, height=TEXTBOX_HEIGHT, color=BLACK, show_space_indicator=show_indicator)
             display_text(
                 phrase[:current_length],
                 TEXTBOX_X + TEXT_PADDING_X,
@@ -237,16 +227,14 @@ def show_dialogue(dialogue_list, font, color=WHITE, voz = "voz_narrador"):
                     audio.canal_texto.stop()
                     audio.reproducir_sonido(voz, audio.canal_texto)
                 current_length += 1
-                tempo_espera(30)  # Adjust speed here (milliseconds per character)``
+                tempo_espera(30) 
             elif current_length >= len(phrase):
-                skip = False  # Reset skip for next phrase
-                # Wait for user to press SPACE to continue
-                # (Handled in event loop above)
+                skip = False  
 
                 check_skip()
                 pygame.time.delay(10)
 
-def draw_text_box(y_offset, width=SCREEN_WIDTH-40, height=100, color=BLACK):
+def draw_text_box(y_offset, width=SCREEN_WIDTH-40, height=100, color=BLACK, show_space_indicator=False):
     # Estilo como los botones del menú de inicio
     rect = pygame.Rect(20, SCREEN_HEIGHT - y_offset - height, width, height)
     color_fondo = (40, 40, 60)
@@ -257,8 +245,15 @@ def draw_text_box(y_offset, width=SCREEN_WIDTH-40, height=100, color=BLACK):
     pygame.draw.rect(screen, color_fondo, rect, border_radius=border_radius)
     # Borde
     pygame.draw.rect(screen, color_borde, rect, grosor_borde, border_radius=border_radius)
+    
+    if show_space_indicator:
+        try:
+            font_ind = pygame.font.Font(FONT_FILE, 14)
+        except:
+            font_ind = pygame.font.Font(None, 14)
+        ind_render = font_ind.render("ESPACIO", True, (200, 200, 200))
+        screen.blit(ind_render, (rect.right - 120, rect.bottom - 25))
 
-# Example dialogue
 dialogues1 = [
     "Era principios de Septiembre de 20XX...",
     "En un lugar de la UDC, de cuyo nombre no quiero acordarme...",
@@ -351,7 +346,6 @@ def run_cinematics(pantalla):
         show_dialogue(dialogue_transicion, font, WHITE)
 
     except SaltarCinematica:
-        #se pulsamos ESC, saltamos o anterior e limpamos elementos para evitar que queden en pantalla
         audio.detener_musica(100)
         audio.canal_texto.stop()
         clear_character()
@@ -361,10 +355,8 @@ def run_cinematics(pantalla):
         pygame.display.flip()
         
     finally:
-        #limpamos eventos para evitar que queden acumulados e afecten ao xogo, sempre chegamos aquí ao finalizar a cinemática, sexa por completala ou por saltala
         pygame.event.clear()
 
-# Solo ejecutar si se llama directamente (para pruebas)
 if __name__ == "__main__":
     pygame.init()
     pantalla = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
