@@ -26,12 +26,12 @@ TORTILLA = "tortilla"
 COR_XOGADOR_HUD = (255, 255, 255)
 
 NOMES_INGREDIENTE = {
-    PATACA_ENTEIRA: "Patacas",
-    PATACA_CORTADA: "Patacas cortadas",
-    PATACA_FRITA: "Patacas fritas",
-    OVO_ENTEIRO: "Ovos",
-    OVO_BATIDO: "Ovos batidos",
-    MESTURA_TORTILLA: "Mestura",
+    PATACA_ENTEIRA: "Patatas",
+    PATACA_CORTADA: "Patatas cortadas",
+    PATACA_FRITA: "Patatas fritas",
+    OVO_ENTEIRO: "Huevos",
+    OVO_BATIDO: "Huevos batidos",
+    MESTURA_TORTILLA: "Mezcla",
     TORTILLA: "Tortilla",
     None: "—",
 }
@@ -168,19 +168,19 @@ class FonteIngrediente(Estacion):
 
 class Neveira(FonteIngrediente):
     def __init__(self, rect_mapa):
-        super().__init__("Neveira", rect_mapa, OVO_ENTEIRO)
+        super().__init__("Nevera", rect_mapa, OVO_ENTEIRO)
 
 
 class CaixaPatacas(FonteIngrediente):
     def __init__(self, rect_mapa):
-        super().__init__("Caixa Patacas", rect_mapa, PATACA_ENTEIRA)
+        super().__init__("Caja de Patatas", rect_mapa, PATACA_ENTEIRA)
 
 
 class TaboaCortar(Estacion):
     PULSACIONS_NECESARIAS = 10
 
     def __init__(self, rect_mapa):
-        super().__init__("Táboa Cortar", rect_mapa)
+        super().__init__("Tabla de Cortar", rect_mapa)
         self.audio = GestorAudio()
         self.progreso = 0
 
@@ -264,7 +264,7 @@ class Cunca(Estacion):
     PULSACIONS_BATER = 10
 
     def __init__(self, rect_mapa):
-        super().__init__("Cunca", rect_mapa)
+        super().__init__("Cuenco", rect_mapa)
         self.audio = GestorAudio()
         self.ovo = None
         self.pataca_frita = None
@@ -312,7 +312,7 @@ class Cunca(Estacion):
 
 class Prato(Estacion):
     def __init__(self, rect_mapa):
-        super().__init__("Prato", rect_mapa)
+        super().__init__("lrato", rect_mapa)
 
     def pode_recibir(self, ingrediente):
         return (ingrediente.estado in (PATACA_FRITA, TORTILLA) and
@@ -540,15 +540,15 @@ class XestorCocina:
     #tutorial para o cociñado paso a paso e controis xerais
 
     _TUTORIAL_ITEMS = [
-        ("Caixa de Patacas",   "E: Coller patacas"),
-        ("Táboa de Cortar",    "E: Deixar patacas · X (×10): Cortar · E: Coller patacas cortadas"),
-        ("Fogón",              "E: Deixar patacas cortadas · Agardar 5s · E: Coller patacas fritas"),
-        ("Prato",              "E: Deixar patacas fritas"),
-        ("Neveira",            "E: Coller ovos"),
-        ("Cunca",              "E: Deixar ovos· X (×10): Bater"),
-        ("Prato",              "E: Coller patacas fritas"),
-        ("Cunca",              "E: Deixar patacas fritas· E: Coller mestura"),
-        ("Fogón",              "E: Deixar mestura · Agardar 5s · E: Coller tortilla"),
+        ("Caja de Patatas",    "E: Coger patatas"),
+        ("Tabla de Cortar",    "E: Dejar patatas · X (×10): Cortar · E: Coger patatas cortadas"),
+        ("Fogón",              "E: Dejar patatas cortadas · Esperar 5s · E: Coger patatas fritas"),
+        ("Plato",              "E: Dejar patatas fritas"),
+        ("Nevera",             "E: Coger huevos"),
+        ("Cuenco",             "E: Dejar huevos· X (×10): Batir"),
+        ("Plato",              "E: Coger patatas fritas"),
+        ("Cuenco",             "E: Dejar patatas fritas· E: Coger mezcla"),
+        ("Fogón",              "E: Dejar mezcla · Esperar 5s · E: Coger tortilla"),
         ("Mostrador",          "E: Entregar tortilla"),
     ]
 
@@ -575,7 +575,7 @@ class XestorCocina:
         fonte_item   = _fonte(13, bold=False)
         fonte_hint   = _fonte(14, bold=True)
 
-        titulo = fonte_titulo.render("RECEITA DA TORTILLA", True, (255, 230, 100))
+        titulo = fonte_titulo.render("RECETA DE LA TORTILLA", True, (255, 230, 100))
         pantalla.blit(titulo, (panel_x + (panel_w - titulo.get_width()) // 2, panel_y + 12))
 
         y = panel_y + 44
@@ -591,11 +591,11 @@ class XestorCocina:
         pygame.draw.line(pantalla, (100, 100, 150),
             (panel_x + 20, sep_y), (panel_x + panel_w - 20, sep_y), 1)
 
-        controles = "WASD: Moverse  ·  E: Coller/Deixar  ·  X: Acción  ·  ESC: Pausa"
+        controles = "WASD: Moverse  ·  E: Coger/Dejar  ·  X: Acción  ·  ESC: Pausa"
         txt_ctrl = fonte_item.render(controles, True, (180, 180, 255))
         pantalla.blit(txt_ctrl, (panel_x + (panel_w - txt_ctrl.get_width()) // 2, sep_y + 8))
 
-        hint = fonte_hint.render("[ ESPAZO ] para continuar", True, (255, 255, 100))
+        hint = fonte_hint.render("[ ESPACIO ] para continuar", True, (255, 255, 100))
         pantalla.blit(hint, (panel_x + (panel_w - hint.get_width()) // 2, panel_y + panel_h - 32))
 
     def dibujar_highlight(self, pantalla, camara):
@@ -624,8 +624,8 @@ class XestorCocina:
         txt_puntos = fonte.render(f"Tortillas: {self.puntos}", True, (255, 215, 0))
         pantalla.blit(txt_puntos, (10, 35))
 
-        nome_man = self.man.nome() if self.man else "Baleira"
-        txt_man  = fonte.render(f"Man: {nome_man}", True, COR_XOGADOR_HUD)
+        nome_man = self.man.nome() if self.man else "Vacía"
+        txt_man  = fonte.render(f"Mano: {nome_man}", True, COR_XOGADOR_HUD)
         pantalla.blit(txt_man, (10, 60))
 
         #version mais descritiva para que o usuario poda saber o que ten diante
@@ -638,13 +638,13 @@ class XestorCocina:
             elif isinstance(est, Cunca):
                 partes = []
                 if est.ovo:           partes.append(est.ovo.nome())
-                if est.pataca_frita:  partes.append("Patacas fritas")
-                if est.mestura_lista: partes = ["Mestura lista"]
-                contido = ", ".join(partes) if partes else "Baleiro"
+                if est.pataca_frita:  partes.append("Patatas fritas")
+                if est.mestura_lista: partes = ["Mezcla lista"]
+                contido = ", ".join(partes) if partes else "Vacía"
             elif est.ingrediente_na_estacion:
                 contido = est.ingrediente_na_estacion.nome()
             else:
-                contido = "Baleiro"
+                contido = "Vacía"
 
             #acción ao pulsar E
             if isinstance(est, Mostrador):
@@ -653,16 +653,16 @@ class XestorCocina:
                 if self.man and self.man.estado == est.tipo:
                     acc_e = f"Devolver {NOMES_INGREDIENTE.get(est.tipo, '')}"
                 elif self.man is None:
-                    acc_e = f"Coller {NOMES_INGREDIENTE.get(est.tipo, '')}"
+                    acc_e = f"Coger {NOMES_INGREDIENTE.get(est.tipo, '')}"
                 else:
                     acc_e = None
             elif self.man is not None:
-                acc_e = f"Deixar {self.man.nome()}" if est.pode_recibir(self.man) else None
+                acc_e = f"Dejar {self.man.nome()}" if est.pode_recibir(self.man) else None
             elif est.pode_dar():
                 if isinstance(est, Cunca) and est.mestura_lista:
-                    acc_e = "Coller mestura"
+                    acc_e = "Coger mezcla"
                 elif est.ingrediente_na_estacion:
-                    acc_e = f"Coller {est.ingrediente_na_estacion.nome()}"
+                    acc_e = f"Coger {est.ingrediente_na_estacion.nome()}"
                 else:
                     acc_e = None
             else:
@@ -676,12 +676,12 @@ class XestorCocina:
                     acc_x = None
             elif isinstance(est, Cunca):
                 if est.ovo and est.ovo.estado == OVO_ENTEIRO:
-                    acc_x = f"Bater ({est.progreso_bater}/{est.PULSACIONS_BATER})"
+                    acc_x = f"Batir ({est.progreso_bater}/{est.PULSACIONS_BATER})"
                 else:
                     acc_x = None
             elif isinstance(est, Fogon) and est.cocinando:
                 seg = max(0, (est.TEMPO_COCCION_MS - est.tempo_acumulado) // 1000)
-                acc_x = f"Fritindo... ({seg}s)"
+                acc_x = f"Friendo... ({seg}s)"
             else:
                 acc_x = None
 
