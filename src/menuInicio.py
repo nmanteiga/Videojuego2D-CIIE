@@ -142,18 +142,25 @@ class MenuPrincipal(Escena):
         self.listaPaneles['INICIAL'] = PanelInicialGUI(self)
         self.panelActual = 'INICIAL'
         self.audio = GestorAudio() # Audio
+        self._tiempo_ultimo_click = 0  # Evitar múltiples clicks
 
         # Música del menú de inicio (temporalmente la de escape):
         self.audio.reproducir_musica("escape")
 
     def update(self, tiempo_pasado):
+        self._tiempo_ultimo_click += tiempo_pasado
         self.listaPaneles[self.panelActual].update(tiempo_pasado)
 
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
             if evento.type == pygame.QUIT:
                 self.director.salirPrograma()
-        self.listaPaneles[self.panelActual].eventos(lista_eventos)
+        
+        # Solo procesar clicks si ha pasado suficiente tiempo desde el último
+        if self._tiempo_ultimo_click >= 300:
+            self.listaPaneles[self.panelActual].eventos(lista_eventos)
+            if any(e.type == pygame.MOUSEBUTTONDOWN for e in lista_eventos):
+                self._tiempo_ultimo_click = 0
 
     def dibujar(self, pantalla):
         self.listaPaneles[self.panelActual].dibujar(pantalla)

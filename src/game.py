@@ -356,7 +356,6 @@ class Dia1(EstadoProgresion):
         self.audio = GestorAudio()
         
     def entrar(self, juego):
-        print("Entrando al Día 1")
         juego.es_de_noche = False
         juego.tortillas_objetivo = 2 #cambiar
         juego.cocina.puntos = 0 #reiniciamos contador tortillas
@@ -454,7 +453,6 @@ class Noche2(EstadoProgresion):
         self.audio = GestorAudio()
 
     def entrar(self, juego):
-        print("Entrando a la Noche 2 - Puerta Desbloqueada")
         juego.es_de_noche = True
         juego.cocina_bloqueada = False #agora xa se pode ir ao pasillo
         juego.actualizar_sala()
@@ -514,7 +512,6 @@ class Dia3(EstadoProgresion):
 
 class Noche3(EstadoProgresion):
     def entrar(self, juego):
-        print("Entrando a la Noche 3 - Laberinto")
         juego.es_de_noche = True
         juego.cocina_bloqueada = False
         juego.actualizar_sala()
@@ -654,11 +651,9 @@ class Juego(Escena):
                     self.audio.cambiar_volumen_musica(VOL_MUSICA / 2) # Se atenúa el volúmen de la música al pausar
                     self.director.apilarEscena(MenuPausa(self.director))
 
-                #DEBUG: engadir tortillas
                 #cambiar
                 if evento.key == pygame.K_t:
                     self.cocina.puntos += 1
-                    print(f"DEBUG: Tortilla añadida. Llevas {self.cocina.puntos} tortillas.")
                     self.audio.reproducir_sonido("campana", self.audio.canal_accion)
 
                 #pizarra
