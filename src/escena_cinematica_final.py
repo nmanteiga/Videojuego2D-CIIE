@@ -80,6 +80,10 @@ class EscenaCinematicaFinal(Escena):
             "Le pusieron a revisar las guías docentes de la FIC hasta el final de sus días"
         ]
         self.indice_texto_negro = 0
+
+        self.audio_m_reproducido = False # Para controlar que el audio de Michel no se reproduzca de más
+        self.tiempo_pasos = 100 # Para el sonido de los pasos de Michel:
+        self.intervalo_pasos = 200
     
     def eventos(self, lista_eventos):
         """Permite avanzar en los diálogos o en la cinemática"""
@@ -146,6 +150,12 @@ class EscenaCinematicaFinal(Escena):
         
         elif self.fase == "corriendo":
             self.michel_y -= self.michel_velocity
+
+            # Para el sonido de los pasos de Michel:
+            self.tiempo_pasos += tiempo_pasado
+            if self.tiempo_pasos >= self.intervalo_pasos:
+                self.audio.reproducir_sonido("pasos")
+                self.tiempo_pasos = 0
             
             self.animation_timer += tiempo_pasado / 1000.0
             if self.animation_timer >= self.animation_speed:
@@ -162,6 +172,10 @@ class EscenaCinematicaFinal(Escena):
                 self.tiempo_fase = 0
         
         elif self.fase == "captura_dialogo":
+            if not self.audio_m_reproducido: # El audio solo se reproduce una vez
+                self.audio.reproducir_sonido("m_amenaza")
+                self.audio_m_reproducido = True
+
             # Michel atrapa a Carlitos, pasar a los textos de fondo negro
             if self.tiempo_fase >= 1000:
                 self.fase = "texto_negro_1"
