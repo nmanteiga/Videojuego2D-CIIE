@@ -65,6 +65,7 @@ class GestorAudio:
         self.cargar_sonido("m_una_tortillita", os.path.join(SFX_FILE, "michel_una_tortillita.wav"))
         self.cargar_sonido("m_risa_malevola", os.path.join(SFX_FILE, "michel_risa_malevola.wav"))
         self.cargar_sonido("m_amenaza", os.path.join(SFX_FILE, "michel_te_amenaza.wav"))
+        self.cargar_sonido("m_risa_malevola_final", os.path.join(SFX_FILE, "michel_risa_malevola_slowdown&reverb.wav")) # Fue divertido hacer esto
 
         # Diccionario de música. La música no se carga directamente:
         self.musica["cocina"] = os.path.join(MUSIC_FILE, "Cocina.mp3")

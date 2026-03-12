@@ -198,6 +198,8 @@ class EscenaCinematicaFinal(Escena):
                 self.caracteres_mostrados = 0  # Resetear para animar el siguiente texto
         
         elif self.fase == "texto_negro_2":
+            self.audio_m_reproducido = False # Resetea la variable para reutilizarla
+
             if self.tiempo_fase < 300:
                 pass
             else:
@@ -221,6 +223,10 @@ class EscenaCinematicaFinal(Escena):
                     self.caracteres_mostrados += self.velocidad_escritura * tiempo_pasado
         
         elif self.fase == "imagen_sin_textbox":
+            if not self.audio_m_reproducido: # El audio solo se reproduce una vez
+                self.audio.reproducir_sonido("m_risa_malevola_final")
+                self.audio_m_reproducido = True
+
             # La imagen se queda 3 segundos
             if self.tiempo_fase >= 3000:
                 self.fase = "fade_out_final"
