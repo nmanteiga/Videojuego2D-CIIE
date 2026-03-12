@@ -52,6 +52,34 @@ def _preescalar_animaciones(animaciones, total_scale):
         volteados[nombre] = fv
     return normales, volteados
 
+
+class Disparador:
+    def __init__(self, condicion_func, callback_accion, delay_ms=0):
+        self.condicion_func = condicion_func     #o que ten que pasar (true/false)
+        self.callback_accion = callback_accion   #función a executar cando se cumpra a condición
+        self.delay_ms = delay_ms                 #canto espera (0 por defecto)
+        
+        self.tiempo_acumulado = 0
+        self.disparado = False
+
+    def update(self, tiempo_pasado):
+        #se xa excecutada non facemos nada
+        if self.disparado:
+            return
+
+        #se se cumple a condición
+        if self.condicion_func():
+            self.tiempo_acumulado += tiempo_pasado
+            
+            #e pasou o tempo necesario (se delay_ms é 0, entra instantáneo)
+            if self.tiempo_acumulado >= self.delay_ms:
+                self.disparado = True
+                self.callback_accion()  # ¡Ejecutamos el comando!
+        else:
+            #se xogador sae da zona, reiniciamos o contador
+            self.tiempo_acumulado = 0
+
+
 # --- CLASE CÁMARA ---
 class Camara:
     def __init__(self, width, height, world_width, world_height, zoom):
@@ -81,6 +109,14 @@ class Camara:
         self.camara.topleft = (int(self.cam_x), int(self.cam_y))
         self.factor_suav = 0.12 # Entre 0.10 y 0.15 es donde mejor funciona
 
+        #para ver cando saltan os disparadores de cambio de sala
+        self.vel_x = 0.0
+
+
+    def esta_quieta_x(self):
+        #se se move menos de medio píxel por fotograma en horizontal, a cámara considérase quieta (o que indica que se ha centrado en la sala)
+        return self.vel_x < 0.01
+
     # Interpolación lineal para el suavizado de la cámara:
     def interp(self, a, b, t):
         return a + (b - a) * t
@@ -93,6 +129,9 @@ class Camara:
     
     # La cámara se actualiza dependiendo de si el jugador se encuentra o no en una sala:
     def update(self, objetivo, salas, focus_world_pos=None):
+        #gardamos a x anterior
+        old_x = self.cam_x
+
         if focus_world_pos is None:
             objetivo_cx, objetivo_cy = objetivo.hitbox.center
         else:
@@ -123,6 +162,9 @@ class Camara:
                 self.cam_x = self.interp(self.cam_x, x, self.factor_suav)
                 self.cam_y = self.interp(self.cam_y, y, self.factor_suav)
                 self.camara.topleft = (int(self.cam_x), int(self.cam_y))
+
+                #calculamos a velocidade horizontal da cámara para saber cando se centra completamente na sala e disparar os eventos de cambio de sala
+                self.vel_x = abs(self.cam_x - old_x)
                 return
         
         # Si el jugador no se encuentra en ninguna sala, el comportamiento es el normal:
@@ -139,6 +181,9 @@ class Camara:
         self.cam_x = self.interp(self.cam_x, x, self.factor_suav)
         self.cam_y = self.interp(self.cam_y, y, self.factor_suav)
         self.camara.topleft = (int(self.cam_x), int(self.cam_y))
+
+        #calculamos a velocidade x
+        self.vel_x = abs(self.cam_x - old_x)
         return
 
 class Player(pygame.sprite.Sprite):
@@ -646,17 +691,62 @@ class Juego(Escena):
         
         self.juego_arrancado = False
 
-        # Control del fade in inicial
-        self._fade_inicial = True
-        self._fade_alpha = 255
-        
-        # --- NUEVO: Banderas para los diálogos de las salas ---
-        self._mensaje_aula_mostrado = False
-        self._mensaje_laberinto_mostrado = False
-        # ------------------------------------------------------
-        
-        # configuración da máquina de estados
-        self.es_de_noche = False
+
+        #patrón Comando: sistema de disparadores para lanzar diálogos ou eventos en función da posición do xogador, a cámara, e outros factores
+        #funcións auxiliares para simplificar a creación dos disparadores, callbacks Patrón Comando
+        def lanzar_dialogo(textos, voz="voz_narrador"):
+            from escena_dialogo import EscenaDialogo
+            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
+            self.director.apilarEscena(EscenaDialogo(self.director, textos, voz))
+
+        def evento_vuelta_cocina():
+            self.debe_volver_a_cocina = False
+            self.cambiar_estado(Dia3())
+
+        self.disparadores = [
+            #volver á cociña
+            Disparador(
+                condicion_func=lambda: getattr(self, 'debe_volver_a_cocina', False) and 
+                                       self.obtener_sala_actual() == "cocina" and 
+                                       self.jugador.hitbox.right < self.puerta_cocina.left and #só esiximos que se cruce a porta
+                                       self.camara.esta_quieta_x(),                            #e que a cámara estea centrada
+                callback_accion=evento_vuelta_cocina
+            ),
+            
+            #diálogo aula da pizarra (depende de cámara X)
+            Disparador(
+                condicion_func=lambda: self.salas[1].collidepoint(self.jugador.hitbox.center) and 
+                                       self.camara.esta_quieta_x(),
+                callback_accion=lambda: lanzar_dialogo([
+                    "Se escucha una voz que te dice al oído:", 
+                    "Hasta que todos acaben el examen no podrás salir."
+                ]),
+                delay_ms=0
+            ),
+
+            #diálogo aula da pizarra (depende de cámara X)
+            Disparador(
+                condicion_func=lambda: self.room2_event.event_started and 
+                                       self.camara.esta_quieta_x(),
+                callback_accion=lambda: lanzar_dialogo([
+                    "Escuchas como se cierra la puerta con pestillo detrás de ti.", 
+                    "Pero parece que al final de esta habitación hay algo escondido, deberías investigar a ver que es."
+                ]),
+                delay_ms=0
+            ),
+
+            #diálogo ao saír do laberinto (depende de saír da porta da sala)
+            Disparador(
+                condicion_func=lambda: self.room2_event.key_collected and 
+                                       not self.salas[2].collidepoint(self.jugador.hitbox.center) and 
+                                       self.jugador.hitbox.left > (self.bloqueo_laberinto.right + 50),
+                callback_accion=lambda: lanzar_dialogo([
+                    "Ya tengo las 2 llaves.", 
+                    "Debería ir a la puerta al final de este pasillo."
+                ], voz="voz_carlitos")
+            )
+        ]
+
 
     def eventos(self, lista_eventos):
         if not self.es_de_noche:
@@ -840,18 +930,11 @@ class Juego(Escena):
             self.juego_arrancado = True
             self.cambiar_estado(Dia1())
 
-        #comproba se voltamos á cociña logo de resolver a pizarra
-        if getattr(self, 'debe_volver_a_cocina', False) and self.obtener_sala_actual() == "cocina":
-            
-
-            #restamos 115 pixels para obligar a entrar na cociña de todo e evitar problemas do scroll
-            if self.jugador.hitbox.right < (self.puerta_cocina.left - 115):
-                self.debe_volver_a_cocina = False
-                self.cambiar_estado(Dia3())
 
         #a máquina de estados vixila se fixemos a tortillas
         if self.estado_actual:
             self.estado_actual.update(self)
+
 
         #comproba se o xogador está na aula
         en_aula = self.salas[1].collidepoint(self.jugador.hitbox.center)
@@ -859,21 +942,6 @@ class Juego(Escena):
         #para evitar que quede encerrado carlitos na porta
         paso_la_puerta = self.jugador.hitbox.centerx > (self.puerta_aula.right + 50)
 
-        # --- NUEVO: Margen extra para que la cámara haga scroll en el Aula ---
-        adentro_aula_dialogo = self.jugador.hitbox.left > (self.puerta_aula.right + 150)
-
-        # --- NUEVO: Diálogo al entrar al Aula Pizarra ---
-        if en_aula and adentro_aula_dialogo and not getattr(self, '_mensaje_aula_mostrado', False):
-            self._mensaje_aula_mostrado = True
-            from escena_dialogo import EscenaDialogo
-            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
-            dialogo_aula = [
-                "Se escucha una voz que te dice al oído:",
-                "Hasta que todos acaben el examen no podrás salir."
-            ]
-            # Apilamos la escena de diálogo
-            self.director.apilarEscena(EscenaDialogo(self.director, dialogo_aula, "voz_narrador"))
-        # ------------------------------------------------
 
         #se está na aula, cruzou a porta e non resolveu a pizarra
         if en_aula and paso_la_puerta and not self.pizarra_resuelta:
@@ -882,22 +950,6 @@ class Juego(Escena):
         elif self.pizarra_resuelta or not en_aula:
             self.aula_bloqueada = False
 
-
-        adentro_lab_dialogo = self.jugador.hitbox.right < (self.room2_event.door_line_world_x - 150)    
-
-        # --- NUEVO: Diálogo al entrar al Laberinto ---
-        # El evento de la room2 detecta automáticamente cuando cruzamos la puerta físicamente
-        if self.room2_event.event_started and adentro_lab_dialogo and not getattr(self, '_mensaje_laberinto_mostrado', False):
-            self._mensaje_laberinto_mostrado = True
-            from escena_dialogo import EscenaDialogo
-            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
-            dialogo_lab = [
-                "Escuchas como se cierra la puerta con pestillo detrás de ti.",
-                "Pero parece que al final de esta habitación hay algo escondido, deberías investigar a ver que es."
-            ]
-            # Apilamos la escena de diálogo
-            self.director.apilarEscena(EscenaDialogo(self.director, dialogo_lab, "voz_narrador"))
-        # ---------------------------------------------    
 
         #actualizar as colisiones extra, engade a porta se bloqueada
         colisiones_extra = self.room2_event.get_extra_collision_rects()
@@ -918,21 +970,7 @@ class Juego(Escena):
         #na Noche 3, bloquéase só se tes a chave, saíches da sala e non estar a tocar o marco da porta
         elif self.room2_event.key_collected and not en_laberinto:
             if not self.jugador.hitbox.colliderect(self.bloqueo_laberinto):
-                colisiones_extra.append(self.bloqueo_laberinto)
-
-            #diálogo automático ao saír do laberinto coa chave
-            #se ten a chave, non está no laberinto, e aínda non lle mostramos a mensaxe
-            if not getattr(self, '_mensaje_llaves_mostrado', False):
-                if self.jugador.hitbox.left > (self.bloqueo_laberinto.right + 50):
-                    self._mensaje_llaves_mostrado = True #marcamos que xa o viu
-
-                    self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
-                    from escena_dialogo import EscenaDialogo
-                    dialogo = [
-                        "Ya tengo las 2 llaves.", 
-                        "Debería ir a la puerta al final de este pasillo."
-                    ]
-                    self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_carlitos"))    
+                colisiones_extra.append(self.bloqueo_laberinto)   
 
 
         self.jugador.set_extra_collision_rects(colisiones_extra)
@@ -943,6 +981,10 @@ class Juego(Escena):
         self.camara.update(self.jugador, self.salas, focus_world_pos=focus_pos)
         if not self.es_de_noche:
             self.cocina.update(tiempo_pasado)
+
+        #disparadores
+        for disparador in self.disparadores:
+            disparador.update(tiempo_pasado)    
 
         self.actualizar_sala()
 
