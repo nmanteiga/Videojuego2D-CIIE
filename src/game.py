@@ -19,7 +19,7 @@ COLISION_SCALE_DOWN = 4
 
 DÍA = 1
 NOITE = True
-DEBUG_COLISION_MAPA = False
+DEBUG_COLISION_MAPA = True
 
 HOME = os.path.dirname(__file__)
 ASSESTS_FILE = os.path.join(HOME, "..", "assets")
@@ -604,7 +604,7 @@ class Juego(Escena):
         self.puerta_cocina = pygame.Rect(807, 2880, 60, 150)
 
         #bloqueo exterior laberinto
-        self.bloqueo_laberinto = pygame.Rect(765, 1554, 90, 150)
+        self.bloqueo_laberinto = pygame.Rect(810, 1554, 45, 150)
 
         #porta saída final
         self.zona_salida = pygame.Rect(1015, 90, 80, 80)
@@ -639,6 +639,18 @@ class Juego(Escena):
         self.estado_actual = None
         
         self.juego_arrancado = False
+
+        # Control del fade in inicial
+        self._fade_inicial = True
+        self._fade_alpha = 255
+        
+        # --- NUEVO: Banderas para los diálogos de las salas ---
+        self._mensaje_aula_mostrado = False
+        self._mensaje_laberinto_mostrado = False
+        # ------------------------------------------------------
+        
+        # configuración da máquina de estados
+        self.es_de_noche = False
 
     def eventos(self, lista_eventos):
         if not self.es_de_noche:
@@ -841,12 +853,45 @@ class Juego(Escena):
         #para evitar que quede encerrado carlitos na porta
         paso_la_puerta = self.jugador.hitbox.centerx > (self.puerta_aula.right + 50)
 
+        # --- NUEVO: Margen extra para que la cámara haga scroll en el Aula ---
+        adentro_aula_dialogo = self.jugador.hitbox.left > (self.puerta_aula.right + 150)
+
+        # --- NUEVO: Diálogo al entrar al Aula Pizarra ---
+        if en_aula and adentro_aula_dialogo and not getattr(self, '_mensaje_aula_mostrado', False):
+            self._mensaje_aula_mostrado = True
+            from escena_dialogo import EscenaDialogo
+            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
+            dialogo_aula = [
+                "Se escucha una voz que te dice al oído:",
+                "Hasta que todos acaben el examen no podrás salir."
+            ]
+            # Apilamos la escena de diálogo
+            self.director.apilarEscena(EscenaDialogo(self.director, dialogo_aula, "voz_narrador"))
+        # ------------------------------------------------
+
         #se está na aula, cruzou a porta e non resolveu a pizarra
         if en_aula and paso_la_puerta and not self.pizarra_resuelta:
             self.aula_bloqueada = True
         #se xa a resolveu ou saíu da aula
         elif self.pizarra_resuelta or not en_aula:
             self.aula_bloqueada = False
+
+
+        adentro_lab_dialogo = self.jugador.hitbox.right < (self.room2_event.door_line_world_x - 150)    
+
+        # --- NUEVO: Diálogo al entrar al Laberinto ---
+        # El evento de la room2 detecta automáticamente cuando cruzamos la puerta físicamente
+        if self.room2_event.event_started and adentro_lab_dialogo and not getattr(self, '_mensaje_laberinto_mostrado', False):
+            self._mensaje_laberinto_mostrado = True
+            from escena_dialogo import EscenaDialogo
+            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
+            dialogo_lab = [
+                "Escuchas como se cierra la puerta con pestillo detrás de ti.",
+                "Pero parece que al final de esta habitación hay algo escondido, deberías investigar a ver que es."
+            ]
+            # Apilamos la escena de diálogo
+            self.director.apilarEscena(EscenaDialogo(self.director, dialogo_lab, "voz_narrador"))
+        # ---------------------------------------------    
 
         #actualizar as colisiones extra, engade a porta se bloqueada
         colisiones_extra = self.room2_event.get_extra_collision_rects()
@@ -946,7 +991,7 @@ class Juego(Escena):
             rect_cam_cuchara = self.camara.aplicar_rect(self.zona_cuchara)
             pygame.draw.rect(self._render_surf, (0, 255, 0), rect_cam_cuchara, 3)
             
-            #rectángulo amarillo para o burato
+            #rectángulo amarelo para o burato
             rect_cam_agujero = self.camara.aplicar_rect(self.zona_agujero)
             pygame.draw.rect(self._render_surf, (255, 255, 0), rect_cam_agujero, 3)
 
