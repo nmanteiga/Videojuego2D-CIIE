@@ -19,7 +19,7 @@ COLISION_SCALE_DOWN = 4
 
 DÍA = 1
 NOITE = True
-DEBUG_COLISION_MAPA = True
+DEBUG_COLISION_MAPA = False
 
 HOME = os.path.dirname(__file__)
 ASSESTS_FILE = os.path.join(HOME, "..", "assets")
@@ -532,6 +532,12 @@ class Juego(Escena):
         self.fondo = pygame.image.load(FONDO_IMG).convert_alpha()
         self.fondo = pygame.transform.scale(self.fondo, (ANCHO_MAPA, ALTO_MAPA))
 
+        self.fondo_pared = pygame.image.load(FONDO_IMG_PARED).convert_alpha()
+        self.fondo_pared = pygame.transform.scale(self.fondo_pared, (ANCHO_MAPA, ALTO_MAPA))
+
+        self.fondo_poster = pygame.image.load(FONDO_IMG_POSTER).convert_alpha()
+        self.fondo_poster = pygame.transform.scale(self.fondo_poster, (ANCHO_MAPA, ALTO_MAPA))
+
         self.frente = pygame.image.load(FRENTE_IMG).convert_alpha()
         self.frente = pygame.transform.scale(self.frente, (ANCHO_MAPA, ALTO_MAPA))
 
@@ -947,7 +953,13 @@ class Juego(Escena):
 
         # Ahora, la pantalla se dibuja y luego se escala correctamente:
         self._render_surf.fill((0, 0, 0, 0))
-        self._render_surf.blit(self.fondo, self.camara.aplicar_rect(self.fondo.get_rect()))
+        if not self.agujero_excavado:
+            fondo_actual = self.fondo_pared
+        elif self.es_de_noche:
+            fondo_actual = self.fondo
+        else:
+            fondo_actual = self.fondo_poster
+        self._render_surf.blit(fondo_actual, self.camara.aplicar_rect(fondo_actual.get_rect()))
         self.room2_event.draw_objects(self._render_surf, self.camara)
         self.cocina.dibujar_highlight(self._render_surf, self.camara)
         self.cocina.dibujar_estaciones(self._render_surf, self.camara)
