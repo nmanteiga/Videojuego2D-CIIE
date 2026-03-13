@@ -1,3 +1,5 @@
+from turtle import delay
+
 import pygame
 import sys
 import os
@@ -564,6 +566,161 @@ class Noche3(EstadoProgresion):
     def update(self, juego):
         pass
 
+class EscenaMuerte(Escena):
+    def __init__(self, director):
+        super().__init__(director)
+        self.audio = GestorAudio()
+        
+        pygame.mixer.music.stop()
+        
+        self.cronometro = 0
+        self.fase = 0
+        
+        #variables control para as imaxes
+        self.mostrar_michel_estatico = False 
+        self.mostrar_pantalla_completa = False
+        
+        self.tiempo_golpe = 0 
+        self.tiempo_silencio_final = 0
+        self.dialogo_jumpscare_lanzado = False 
+        self.escala_michel = 200 #tamaño inicial jumpscare
+        
+        #rutas imaxes
+        HOME = os.path.dirname(__file__)
+        
+        ruta_michel_normal = os.path.join(HOME, "..", "assets", "graphics", "characters", "míchel", "michel_enfadao.png")
+        ruta_jump = os.path.join(HOME, "..", "assets", "graphics", "characters", "míchel", "michel_jumpScare.png")
+        ruta_fullscreen = os.path.join(HOME, "..", "assets", "graphics", "cinematica", "pantalla_de_inicio.jpg")
+
+
+        try:
+            #Michel estático
+            img_temp = pygame.image.load(ruta_michel_normal).convert_alpha()
+            self.img_michel_estatico = pygame.transform.scale(img_temp, (300, 300))
+        except FileNotFoundError:
+            print(f"AVISO: No se encontró {ruta_michel_normal}")
+            self.img_michel_estatico = None
+
+        try:
+            #Michel Jumpscare
+            self.img_michel_jumpscare = pygame.image.load(ruta_jump).convert_alpha()
+        except FileNotFoundError:
+            print(f"AVISO: No se encontró {ruta_jump}")
+            self.img_michel_jumpscare = None
+
+        try:
+            #fondo de pantalla inicio
+            self.img_fullscreen = pygame.image.load(ruta_fullscreen).convert_alpha()
+            self.img_fullscreen = pygame.transform.scale(self.img_fullscreen, (ANCHO, ALTO))
+        except FileNotFoundError:
+            print(f"AVISO: No se encontró {ruta_fullscreen}")
+            self.img_fullscreen = None
+
+    def update(self, tiempo_pasado):
+        self.cronometro += tiempo_pasado
+        
+        #fase 0: porta
+        if self.fase == 0:
+            self.audio.reproducir_sonido("abre_puerta") 
+            self.fase = 1
+            self.cronometro = 0
+            
+        #fase 1: pasos
+        elif self.fase == 1 and self.cronometro > 1500:
+            self.audio.reproducir_sonido("pasos_pasillo")
+            self.fase = 2
+            self.cronometro = 0
+            
+        #fase 2: silencio e primeiro diálogo
+        elif self.fase == 2 and self.cronometro > 2000:
+            self.fase = 3 
+            
+            from escena_dialogo import EscenaDialogo
+            dialogo_previo = ["Te dije que no salieras de la cocina."]
+            
+            def jumpscare_michel():
+                self.audio.reproducir_sonido("golpe_sarten")
+                pygame.time.delay(600)
+                self.tiempo_golpe = pygame.time.get_ticks()
+                self.fase = 4 
+                
+            self.director.apilarEscena(EscenaDialogo(
+                self.director, 
+                dialogo_previo, 
+                "voz_michel_grave", 
+                callback_fin=jumpscare_michel, 
+                color_texto=(200, 0, 0), 
+                fondo_negro=True 
+            ))
+
+        #fase 4: pausa de 2s e segundo texto
+        elif self.fase == 4 and not self.dialogo_jumpscare_lanzado:
+            tiempo_actual = pygame.time.get_ticks()
+            
+            if (tiempo_actual - self.tiempo_golpe) >= 2000:
+                self.audio.reproducir_musica("jumpscare_musica")
+                self.mostrar_michel_estatico = True
+                self.dialogo_jumpscare_lanzado = True 
+                
+                from escena_dialogo import EscenaDialogo
+                dialogo_jumpscare = ["Me has roto el corazón, Carlitos.", "Yo solo te quería ayudar...", "Pero has husmeado donde no debías...", "Nunca debiste venir a estudiar a la FIC."]
+                
+                def iniciar_silencio_final():
+                    self.mostrar_michel_estatico = False 
+                    self.mostrar_pantalla_completa = True 
+                    self.fase = 5
+                    pygame.mixer.music.stop()
+                    self._musica_sonando = None
+                    self.tiempo_silencio_final = pygame.time.get_ticks()
+                    
+                self.director.apilarEscena(EscenaDialogo(
+                    self.director, 
+                    dialogo_jumpscare, 
+                    "voz_michel_grave", 
+                    callback_fin=iniciar_silencio_final, 
+                    color_texto=(0, 0, 0),         
+                    fondo_negro=False,             
+                    color_fondo_caja=(200, 0, 0),  
+                    color_borde_caja=(0, 0, 0)     
+                ))
+
+        #fase 5: 3 segundos de silencio
+        elif self.fase == 5:
+            if (pygame.time.get_ticks() - self.tiempo_silencio_final) >= 3000:
+                self.fase = 6
+                self.audio.reproducir_sonido("m_risa_malevola")
+
+        #fase 6: jumpscare e feche do xogo
+        elif self.fase == 6:
+            #a imaxe crece 60 pixels por fotograma
+            self.escala_michel += 60 
+            
+            #cando crezca de todo a imaxe, fechamos xogo
+            if self.escala_michel > 2500:
+                self.director.salirPrograma() 
+
+
+    def eventos(self, lista_eventos):
+        pass
+
+    def dibujar(self, pantalla):
+        pantalla.fill((0, 0, 0))
+        
+        #debuxar img a pantalla completa se estamos en fase 5 o 6
+        if self.mostrar_pantalla_completa and self.img_fullscreen:
+            pantalla.blit(self.img_fullscreen, (0, 0))
+            
+        #debuxar Michel normal en Fase 4
+        if self.mostrar_michel_estatico and self.img_michel_estatico:
+            rect_michel = self.img_michel_estatico.get_rect(center=(ANCHO // 2, ALTO // 2 - 50))
+            pantalla.blit(self.img_michel_estatico, rect_michel)   
+            
+        #debuxar Michel jumpscare creciendo en fase 6
+        if self.fase == 6 and self.img_michel_jumpscare:
+            img_zoom = pygame.transform.scale(self.img_michel_jumpscare, (int(self.escala_michel), int(self.escala_michel)))
+            rect_zoom = img_zoom.get_rect(center=(ANCHO // 2, ALTO // 2))
+            pantalla.blit(img_zoom, rect_zoom)
+
 
 class Juego(Escena):
 
@@ -795,9 +952,33 @@ class Juego(Escena):
 
                         def restar_vida():
                             self.vidas_pizarra -= 1
+                            
+                        def penalizacion_fallo(vidas_restantes):
+                            from escena_dialogo import EscenaDialogo
+
+                            #paramos música
+                            pygame.mixer.music.stop()
+                            self._musica_sonando = None
+                            delay(1000)
+                            
+                            #fallo 1, vidas = 2
+                            if vidas_restantes == 2:
+                                self.audio.reproducir_sonido("pasos_pasillo") 
+                                dialogo = ["(Se escuchan pasos en el pasillo...)"]
+                                self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_michel", color_texto=(255, 50, 50)))
+
+                                self.nivel_tension = 1
+                            
+                            #fallo 2, vidas = 1
+                            elif vidas_restantes == 1:
+                                self.audio.reproducir_sonido("toc_toc") 
+                                dialogo = ["(Escuchas a alguien en el pasillo, intentando abrir la puerta)"]
+                                self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_michel", color_texto=(255, 50, 50)))
+
+                                self.nivel_tension = 2
                         
                         #patrón Callback: pasamos 'self.superar_pizarra' a escena
-                        escena_pizz = EscenaPizarra(self.director, self.vidas_pizarra, self.superar_pizarra, self.perder_juego, restar_vida)
+                        escena_pizz = EscenaPizarra(self.director, self.vidas_pizarra, self.superar_pizarra, self.perder_juego, restar_vida, penalizacion_fallo)
                         self.director.apilarEscena(escena_pizz)
 
                     #culler (Solo Noche 1)
@@ -887,12 +1068,20 @@ class Juego(Escena):
             
     def actualizar_sala(self):
         nueva_sala = self.obtener_sala_actual()
+
+        #lemos o nivel de tensión para decidir se a música de escape é máis intensa ou non, no caso da pizarra
+        nivel = getattr(self, 'nivel_tension', 0)
         
-        #se está na cociña de noite soa a música de escape, senón a música de cociñado
-        if nueva_sala == "cocina":
-            musica_objetivo = "escape" if self.es_de_noche else "cocina"
+        if nivel == 1:
+            musica_objetivo = "dos_vidas_restantes" #2 vidas
+        elif nivel == 2:
+            musica_objetivo = "una_vida_restante" #1 vida
         else:
-            musica_objetivo = "escape"
+            #se está na cociña de noite soa a música de escape, senón a música de cociñado
+            if nueva_sala == "cocina":
+                musica_objetivo = "escape" if self.es_de_noche else "cocina"
+            else:
+                musica_objetivo = "escape"
             
         #comprobar qué música está soando realmente para non reiniciarla
         musica_actual = getattr(self, '_musica_sonando', None)
@@ -912,6 +1101,7 @@ class Juego(Escena):
     def superar_pizarra(self):
         #se executa unha vez o xogador resolva a pizarra
         self.pizarra_resuelta = True
+        self.nivel_tension = 0
 
         from escena_dialogo import EscenaDialogo
         dialogo = [
@@ -926,19 +1116,9 @@ class Juego(Escena):
 
     #game over ao non completar a pizarra
     def perder_juego(self):
-        self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
-        
-        from escena_dialogo import EscenaDialogo
-        dialogo = [
-            "Michel te ha atrapado."
-            ]
-        
-        #patrón Callback: cando remate de ler o texto, volvemos ao menú principal
-        def volver_menu():
-            from menuInicio import MenuPrincipal
-            self.director.cambiarEscena(MenuPrincipal(self.director))
-            
-        self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_narrador", callback_fin=volver_menu))    
+        # ¡Arrancamos la secuencia cinemática de muerte!
+        # Usamos cambiarEscena para destruir el juego por completo
+        self.director.cambiarEscena(EscenaMuerte(self.director))
 
 
     def update(self, tiempo_pasado):

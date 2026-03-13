@@ -66,12 +66,20 @@ class GestorAudio:
         self.cargar_sonido("m_risa_malevola", os.path.join(SFX_FILE, "michel_risa_malevola.wav"))
         self.cargar_sonido("m_amenaza", os.path.join(SFX_FILE, "michel_te_amenaza.wav"))
         self.cargar_sonido("m_risa_malevola_final", os.path.join(SFX_FILE, "michel_risa_malevola_slowdown&reverb.wav")) # Fue divertido hacer esto
+        self.cargar_sonido("pasos_pasillo", os.path.join(SFX_FILE, "pasos_caseros.wav"))
+        self.cargar_sonido("toc_toc", os.path.join(SFX_FILE, "629987__flem0527__knocking-on-wood-door-1.wav"))
+        self.cargar_sonido("abre_puerta", os.path.join(SFX_FILE, "15419__pagancow__dorm-door-opening.wav"))
+
+
 
         # Diccionario de música. La música no se carga directamente:
         self.musica["cocina"] = os.path.join(MUSIC_FILE, "Cocina.mp3")
         self.musica["escape"] = os.path.join(MUSIC_FILE, "Escape.mp3")
         self.musica["cafeteria"] = os.path.join(MUSIC_FILE, "ambiente_cafeteria.mp3")
         self.musica["parada_bus"] = os.path.join(MUSIC_FILE, "ambiente_parada_bus.mp3")
+        self.musica["una_vida_restante"] = os.path.join(MUSIC_FILE, "175205__minigunfiend__scary-creaking-knocking-wood.wav")
+        self.musica["dos_vidas_restantes"] = os.path.join(MUSIC_FILE, "Scary-Monster.flac")
+        self.musica["jumpscare_musica"] = os.path.join(MUSIC_FILE, "Scary Ambient Wind.ogg")
 
         # Reserva de canales:
         pygame.mixer.set_reserved(4) # Número de canales reservados

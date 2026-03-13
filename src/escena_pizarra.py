@@ -75,11 +75,12 @@ class OpcionTest:
             # i * 20 fai que a seguinte liña baixe 20 píxeles respecto á anterior
             pantalla.blit(texto_render, (self.rect.x, self.rect.y + (i * 20)))
 class EscenaPizarra(Escena):
-    def __init__(self, director, vidas_actuales, callback_acierto=None, callback_gameover=None, callback_restar_vida=None):
+    def __init__(self, director, vidas_actuales, callback_acierto=None, callback_gameover=None, callback_restar_vida=None, callback_penalizacion=None):
         super().__init__(director)
         self.callback_acierto = callback_acierto
         self.callback_gameover = callback_gameover
         self.callback_restar_vida = callback_restar_vida
+        self.callback_penalizacion = callback_penalizacion
         self.audio = GestorAudio()
 
         self.vidas = vidas_actuales #usamos as vidas que nos di o game.py, para manter un rexistro correcto
@@ -249,6 +250,10 @@ class EscenaPizarra(Escena):
                     self.cargar_pregunta_actual()
                     self.respondido = False
                     self.director.salirEscena() #sacamos a escena para ter que volver a interactuar
+
+                    #lanzamos o diálogo agora que a pizarra xa se fechou
+                    if self.callback_penalizacion:
+                        self.callback_penalizacion(self.vidas)
 
     def dibujar(self, pantalla):
         #sistema anti bucles

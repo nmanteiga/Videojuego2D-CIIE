@@ -5,7 +5,7 @@ from gestorAudio import GestorAudio
 
 class EscenaDialogo(Escena):
     #patrón Estado: esta escena apílase sobre o xogo para mostrar diálogos, destruíndose ao terminar de ler
-    def __init__(self, director, textos, voz = "voz_narrador", callback_fin=None):
+    def __init__(self, director, textos, voz="voz_narrador", callback_fin=None, color_texto=(240, 240, 240), fondo_negro=False, color_fondo_caja=(40, 40, 60), color_borde_caja=None):
         super().__init__(director)
         self.audio = GestorAudio()
         self.textos = textos
@@ -13,6 +13,12 @@ class EscenaDialogo(Escena):
         self.voz = voz
         self.caracter_anterior = 0
         self.callback_fin = callback_fin
+
+        self.color_texto = color_texto
+        self.fondo_negro = fondo_negro
+
+        self.color_fondo_caja = color_fondo_caja
+        self.color_borde_caja = color_borde_caja
         
         HOME = os.path.dirname(__file__)
         FONT_FILE = os.path.join(HOME, "..", "assets", "fonts", "PressStart2P-Regular.ttf")
@@ -92,18 +98,29 @@ class EscenaDialogo(Escena):
 
     def dibujar(self, pantalla):
         #sistema anti-bucles a proba de fallos: debuxa a escena xusto debaixo desta na pila
-        if self in self.director.pila:
-            indice_actual = self.director.pila.index(self)
-            if indice_actual > 0:
-                self.director.pila[indice_actual - 1].dibujar(pantalla)
+        #se nos piden fondo negro, tapamos todo o xogo
+        if self.fondo_negro:
+            pantalla.fill((0, 0, 0))
+        else:
+            #debuxado normal: debuxamos o que hai debaixo na pila
+            if self in self.director.pila:
+                indice_actual = self.director.pila.index(self)
+                if indice_actual > 0:
+                    self.director.pila[indice_actual - 1].dibujar(pantalla)
 
         #se rematamos non se debuxa caixa de texto
         if self.indice_texto >= len(self.textos):
             return
 
         #debuxamos caixa do diálogo
-        pygame.draw.rect(pantalla, (40, 40, 60), self.caja_rect, border_radius=10)
-        pygame.draw.rect(pantalla, (255, 215, 0), self.caja_rect, 3, border_radius=10)
+        pygame.draw.rect(pantalla, self.color_fondo_caja, self.caja_rect, border_radius=10)
+
+        #se o fondo é negro, ponemos borde vermello á caixa para máis terror; senón, amarelo
+        if self.color_borde_caja is not None:
+            color_borde = self.color_borde_caja
+        else:
+            color_borde = (150, 0, 0) if self.fondo_negro else (255, 215, 0)
+        pygame.draw.rect(pantalla, color_borde, self.caja_rect, 3, border_radius=10)
 
         #preparamos o texto actual
         texto_actual = self.textos[self.indice_texto]
@@ -126,9 +143,10 @@ class EscenaDialogo(Escena):
             texto_lina = lina[:caracteres_restantes]
             caracteres_restantes -= len(lina)
             
-            render = self.fuente.render(texto_lina, True, (240, 240, 240))
+            #usamos self.color_texto en lugar de blanco fixo
+            render = self.fuente.render(texto_lina, True, self.color_texto)
             pantalla.blit(render, (self.caja_rect.x + 20, self.caja_rect.y + 20 + y_offset))
-            y_offset += render.get_height() + self.espazamento_linas
+            y_offset += self.fuente.get_height() + self.espazamento_linas
         
         #indicador tecla para pasar o diálogo
         if self.caracteres_mostrados >= len(texto_actual):
