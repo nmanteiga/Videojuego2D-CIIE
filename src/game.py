@@ -640,6 +640,7 @@ class Juego(Escena):
 
         self.zona_pizarra = pygame.Rect(1919, 2086, 80, 80) #pulsar e para interactuar coa pizarra
         self.pizarra_resuelta = False  #control de estado
+        self.vidas_pizarra = 3
 
         #bloqueo da porta da aula ata resolver a pizarra
         self.puerta_aula = pygame.Rect(1245, 2140, 60, 150)
@@ -791,9 +792,12 @@ class Juego(Escena):
                     if not self.pizarra_resuelta and self.zona_pizarra.colliderect(self.jugador.hitbox):
                         from escena_pizarra import EscenaPizarra
                         self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
+
+                        def restar_vida():
+                            self.vidas_pizarra -= 1
                         
                         #patrón Callback: pasamos 'self.superar_pizarra' a escena
-                        escena_pizz = EscenaPizarra(self.director, self.superar_pizarra)
+                        escena_pizz = EscenaPizarra(self.director, self.vidas_pizarra, self.superar_pizarra, self.perder_juego, restar_vida)
                         self.director.apilarEscena(escena_pizz)
 
                     #culler (Solo Noche 1)
@@ -919,6 +923,22 @@ class Juego(Escena):
         
         #avisamos ao xogo que estamos na fase de volta á cociña
         self.debe_volver_a_cocina = True
+
+    #game over ao non completar a pizarra
+    def perder_juego(self):
+        self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
+        
+        from escena_dialogo import EscenaDialogo
+        dialogo = [
+            "Michel te ha atrapado."
+            ]
+        
+        #patrón Callback: cando remate de ler o texto, volvemos ao menú principal
+        def volver_menu():
+            from menuInicio import MenuPrincipal
+            self.director.cambiarEscena(MenuPrincipal(self.director))
+            
+        self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_narrador", callback_fin=volver_menu))    
 
 
     def update(self, tiempo_pasado):
