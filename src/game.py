@@ -1,5 +1,3 @@
-from turtle import delay
-
 import pygame
 import sys
 import os
@@ -686,7 +684,7 @@ class EscenaMuerte(Escena):
 
         #fase 5: 3 segundos de silencio
         elif self.fase == 5:
-            if (pygame.time.get_ticks() - self.tiempo_silencio_final) >= 3000:
+            if (pygame.time.get_ticks() - self.tiempo_silencio_final) >= 2000:
                 self.fase = 6
                 self.audio.reproducir_sonido("m_risa_malevola")
 
@@ -959,7 +957,7 @@ class Juego(Escena):
                             #paramos música
                             pygame.mixer.music.stop()
                             self._musica_sonando = None
-                            delay(1000)
+                            pygame.time.delay(1000)
                             
                             #fallo 1, vidas = 2
                             if vidas_restantes == 2:
