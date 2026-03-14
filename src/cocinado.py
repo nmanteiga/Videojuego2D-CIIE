@@ -185,7 +185,8 @@ class TaboaCortar(Estacion):
         self.progreso = 0
 
     def pode_recibir(self, ingrediente):
-        return ingrediente.estado == PATACA_ENTEIRA and self.ingrediente_na_estacion is None
+        return (ingrediente.estado in (PATACA_ENTEIRA, PATACA_CORTADA) and
+                self.ingrediente_na_estacion is None)
 
     def accion_x(self, xogador):
         if (self.ingrediente_na_estacion and
@@ -274,12 +275,19 @@ class Cunca(Estacion):
     def pode_recibir(self, ingrediente):
         if self.mestura_lista: return False
         if ingrediente.estado == OVO_ENTEIRO and self.ovo is None: return True
+        if ingrediente.estado == OVO_BATIDO and self.ovo is None: return True
         if ingrediente.estado == PATACA_FRITA and self.pataca_frita is None: return True
+        if ingrediente.estado == MESTURA_TORTILLA and not self.mestura_lista: return True
         return False
 
     def recibir(self, ingrediente):
-        if   ingrediente.estado == OVO_ENTEIRO: self.ovo = ingrediente
-        elif ingrediente.estado == PATACA_FRITA: self.pataca_frita = ingrediente
+        if ingrediente.estado in (OVO_ENTEIRO, OVO_BATIDO):
+            self.ovo = ingrediente
+        elif ingrediente.estado == PATACA_FRITA:
+            self.pataca_frita = ingrediente
+        elif ingrediente.estado == MESTURA_TORTILLA:
+            self.mestura_lista = True
+            self.ingrediente_na_estacion = ingrediente
         self.comprobar_mestura()
 
     def comprobar_mestura(self):
@@ -289,7 +297,8 @@ class Cunca(Estacion):
             self.ovo = None
             self.pataca_frita = None
 
-    def pode_dar(self): return self.mestura_lista
+    def pode_dar(self):
+        return self.mestura_lista or self.ovo is not None or self.pataca_frita is not None
 
     def accion_x(self, xogador):
         if self.ovo and self.ovo.estado == OVO_ENTEIRO:
@@ -498,11 +507,24 @@ class XestorCocina:
             if isinstance(est, FonteIngrediente):
                 self.audio.reproducir_sonido("coger_item", self.audio.canal_accion)
                 self.man = est.dar_ingrediente()
+            elif isinstance(est, Cunca):
+                if est.mestura_lista:
+                    self.man = est.ingrediente_na_estacion
+                    est.ingrediente_na_estacion = None
+                    est.mestura_lista = False
+                elif est.ovo is not None:
+                    self.man = est.ovo
+                    est.ovo = None
+                    est.progreso_bater = 0
+                elif est.pataca_frita is not None:
+                    self.man = est.pataca_frita
+                    est.pataca_frita = None
+                self.audio.reproducir_sonido("coger_item", self.audio.canal_accion)
             else:
                 self.man = est.ingrediente_na_estacion
                 est.ingrediente_na_estacion = None
-                if isinstance(est, Cunca):
-                    est.mestura_lista = False
+                if isinstance(est, TaboaCortar):
+                    est.progreso = 0
                 self.audio.reproducir_sonido("coger_item", self.audio.canal_accion)
 
     def accion_x(self):
