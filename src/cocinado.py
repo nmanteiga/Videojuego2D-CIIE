@@ -298,7 +298,10 @@ class Cunca(Estacion):
             self.pataca_frita = None
 
     def pode_dar(self):
-        return self.mestura_lista or self.ovo is not None or self.pataca_frita is not None
+        # Non se pode sacar a pataca se hai ovo sen bater
+        if self.ovo is not None and self.ovo.estado == OVO_ENTEIRO:
+            return self.mestura_lista
+        return self.mestura_lista or self.pataca_frita is not None
 
     def accion_x(self, xogador):
         if self.ovo and self.ovo.estado == OVO_ENTEIRO:
@@ -438,7 +441,7 @@ class XestorCocina:
 
         if (prato.ingrediente_na_estacion and
                 prato.ingrediente_na_estacion.estado == PATACA_FRITA and
-                cunca.ovo is None and not cunca.mestura_lista):
+                cunca.ovo is None):
             return (self.neveira, "highlight_ovos.png")
 
         if (fogon.ingrediente_na_estacion and
