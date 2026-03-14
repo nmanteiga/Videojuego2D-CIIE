@@ -324,7 +324,7 @@ class Cunca(Estacion):
 
 class Prato(Estacion):
     def __init__(self, rect_mapa):
-        super().__init__("lrato", rect_mapa)
+        super().__init__("Prato", rect_mapa)
 
     def pode_recibir(self, ingrediente):
         return (ingrediente.estado in (PATACA_FRITA, TORTILLA) and
