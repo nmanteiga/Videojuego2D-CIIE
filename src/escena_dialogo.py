@@ -53,29 +53,29 @@ class EscenaDialogo(Escena):
 
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
-            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_SPACE:
-                #doble check de seguridade por se ocorre un doble clic
-                if self.indice_texto >= len(self.textos):
-                    return
-
-                texto_actual = self.textos[self.indice_texto]
+            if evento.type == pygame.KEYDOWN:
                 
-                #se non rematou de escribir, o autocompleta de golpe
-                if self.caracteres_mostrados < len(texto_actual):
-                    self.caracteres_mostrados = len(texto_actual)
-                else:
-                    #se remata pasa ao seguinte
-                    self.indice_texto += 1
-                    self.caracteres_mostrados = 0
-                    self.caracter_anterior = 0
-                    
-                    #saímos se non hai máis textos
+                if evento.key == pygame.K_ESCAPE:
+                    self.director.salirEscena()
+                    return 
+                if evento.key == pygame.K_SPACE:
                     if self.indice_texto >= len(self.textos):
-                        self.director.salirEscena() #matamos o diálogo actual
-                        if self.callback_fin:
-                            self.callback_fin()     #chamamos ao callback se existe
+                        return
 
-    #función importada de text.py para axustar o texto ao ancho da caixa
+                    texto_actual = self.textos[self.indice_texto]
+                    
+                    if self.caracteres_mostrados < len(texto_actual):
+                        self.caracteres_mostrados = len(texto_actual)
+                    else:
+                        self.indice_texto += 1
+                        self.caracteres_mostrados = 0
+                        self.caracter_anterior = 0
+                        
+                        if self.indice_texto >= len(self.textos):
+                            self.director.salirEscena() 
+                            if self.callback_fin:
+                                self.callback_fin()    
+                                
     def envolver_texto(self, texto, max_ancho):
         palabras = texto.split(' ')
         linas = []

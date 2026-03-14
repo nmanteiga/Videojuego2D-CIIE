@@ -4,20 +4,20 @@ from director import *
 from menuInicio import MenuPrincipal
 
 if __name__ == '__main__':
-    # Inicializamos la librería de pygame
+    # iniciamos pygame
     pygame.init()
 
-    # Creamos el director
+    # creamos el director de juego 
     director = Director()
 
-    # Creamos la escena inicial
+    # pillamos la primera escena
     escena = MenuPrincipal(director)
 
-    # Le decimos al director que apile esta escena
+    # la metemos en la pila
     director.apilarEscena(escena)
 
-    # Y ejecutamos el juego
+    # a jugar
     director.ejecutar()
 
-    # Cuando se termine la ejecución, finaliza la librería
+    # cerrar al acabar
     pygame.quit()

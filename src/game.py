@@ -10,9 +10,9 @@ from escena_room2 import Room2Event
 from gestorAudio import GestorAudio, VOL_MUSICA
 
 SCALE = 4  
-# ANCHO, ALTO = 800, 600 (Definidos en escena.py)
+# ANCHO, ALTO = 800, 600 (definidos en escena.py)
 
-ANCHO_MAPA = 2112 # El anterior ancho era 1472, pero era demasiado estrecho
+ANCHO_MAPA = 2112 # el anterior ancho era 1472, pero era demasiado estrecho
 ALTO_MAPA = 3200
 
 COLISION_SCALE_DOWN = 4
@@ -38,7 +38,7 @@ PERSONAJE_MOVE = os.path.join(GRAPHICS_FILE, "characters", "Walk-Sheet.png")
 PERSONAJE_INTERACT = os.path.join(GRAPHICS_FILE, "characters", "Interact-Sheet.png")
 
 def _preescalar_animaciones(animaciones, total_scale):
-    """Escala y voltea todos los frames UNA sola vez al arrancar."""
+    # escalar y voltear todo de golpe al principio para que luego no nos peten los fps
     normales, volteados = {}, {}
     for nombre, frames in animaciones.items():
         fn, fv = [], []
@@ -80,44 +80,44 @@ class Disparador:
             self.tiempo_acumulado = 0
 
 
-# --- CLASE CÁMARA ---
+#  clase camara 
 class Camara:
     def __init__(self, width, height, world_width, world_height, zoom):
-        # Tamaño de la ventana de visualización:
+        # tamaño de la ventana donde se ve
         self.width = width
         self.height = height
 
-        # Tamaño del mapa:
+        # tamaño del mapa entero
         self.world_width = world_width
         self.world_height = world_height
 
-        # Nivel de zoom:
+        # nivel de zoom
         self.zoom = zoom
 
-        # Tamaño de lo que ve la cámara con el zoom (viewport):
+        # cuadro de lo que ve la camara
         self.viewport_width = int(self.width / self.zoom)
         self.viewport_height = int(self.height / self.zoom)
 
-        # Inicializamos la cámara final:
+        # metemos la camara final
         self.ancho_cam = self.viewport_width
         self.alto_cam = self.viewport_height
         self.camara = pygame.Rect(0, 0, self.ancho_cam, self.alto_cam)
 
-        # Ajustes para el suavizado de la cámara:
+        # variables para que al moverse no de tirones
         self.cam_x = 0.0
         self.cam_y = 0.0
         self.camara.topleft = (int(self.cam_x), int(self.cam_y))
-        self.factor_suav = 0.12 # Entre 0.10 y 0.15 es donde mejor funciona
+        self.factor_suav = 0.12 # medida prueba error
 
-        #para ver cando saltan os disparadores de cambio de sala
+        # para saber cuando salta un evento al cambiar de sala
         self.vel_x = 0.0
 
 
     def esta_quieta_x(self):
-        #se se move menos de medio píxel por fotograma en horizontal, a cámara considérase quieta (o que indica que se ha centrado en la sala)
+        # si se mueve poco se considera que termino de pararse
         return self.vel_x < 0.01
 
-    # Interpolación lineal para el suavizado de la cámara:
+    # para que la camara se mueva suave
     def interp(self, a, b, t):
         return a + (b - a) * t
 
@@ -127,9 +127,9 @@ class Camara:
     def aplicar_rect(self, rect):
         return rect.move(self.camara.topleft)
     
-    # La cámara se actualiza dependiendo de si el jugador se encuentra o no en una sala:
+    # movemos la camara segun donde este el jugador
     def update(self, objetivo, salas, focus_world_pos=None):
-        #gardamos a x anterior
+        # nos guardamos la x vieja
         old_x = self.cam_x
 
         if focus_world_pos is None:
@@ -137,52 +137,52 @@ class Camara:
         else:
             objetivo_cx, objetivo_cy = focus_world_pos
 
-        # En caso de que el jugador se encuentre en una sala:
+        # si el jugador pisa una sala la centramos
         for sala in salas:
             if sala.collidepoint((objetivo_cx, objetivo_cy)):
                 if sala.width <= self.ancho_cam and sala.height <= self.alto_cam:
-                    # Si la sala es más pequeña que la cámara, esta se centra y se bloquea:
+                    # si es pequeña bloqueamos la camara en el centro de la sala
                     x = -sala.centerx + int(self.ancho_cam / 2)
                     y = -sala.centery + int(self.alto_cam / 2)
                 else:
-                    # En el caso contrario, la cámara se puede desplazar, pero sólo dentro de la sala:
+                    # si es mas grande dejamos que se mueva por dentro
                     x = -objetivo_cx + int(self.ancho_cam / 2)
                     y = -objetivo_cy + int(self.alto_cam / 2)
 
-                    # Establecemos los límites de la sala:
+                    # topes de la sala para q no se salga la camara
                     lim_izq = -sala.left
                     lim_der = -(sala.right - self.ancho_cam)
                     lim_sup = -sala.top
                     lim_inf = -(sala.bottom - self.alto_cam)
 
-                    x = max(lim_der, min(lim_izq, x)) # Obliga a estar entre el límite derecho e izquierdo
-                    y = max(lim_inf, min(lim_sup, y)) # Obliga a estar entre el límite superior e inferior
+                    x = max(lim_der, min(lim_izq, x)) # tope en x
+                    y = max(lim_inf, min(lim_sup, y)) # tope en y
                 
-                # Actualización de la camara con suavizado:
+                # le aplicamos el suavizado 
                 self.cam_x = self.interp(self.cam_x, x, self.factor_suav)
                 self.cam_y = self.interp(self.cam_y, y, self.factor_suav)
                 self.camara.topleft = (int(self.cam_x), int(self.cam_y))
 
-                #calculamos a velocidade horizontal da cámara para saber cando se centra completamente na sala e disparar os eventos de cambio de sala
+                # velocidad en x
                 self.vel_x = abs(self.cam_x - old_x)
                 return
         
-        # Si el jugador no se encuentra en ninguna sala, el comportamiento es el normal:
+        # si no pisa ninguna sala lo seguimos normal
         x = -objetivo_cx + int(self.ancho_cam / 2)
         y = -objetivo_cy + int(self.alto_cam / 2)
 
-        # Se ajusta la cámara a los límites del mapa:
+        # limites del mapa para que esto no crashee o enseñe cosas raras
         x = min(0, x)
         y = min(0, y)
         x = max(-(self.world_width - self.ancho_cam), x)
         y = max(-(self.world_height - self.alto_cam), y)
 
-        # Actualización de la camara con suavizado:
+        # mas suavizado
         self.cam_x = self.interp(self.cam_x, x, self.factor_suav)
         self.cam_y = self.interp(self.cam_y, y, self.factor_suav)
         self.camara.topleft = (int(self.cam_x), int(self.cam_y))
 
-        #calculamos a velocidade x
+        # y mas velocidad x
         self.vel_x = abs(self.cam_x - old_x)
         return
 
@@ -218,7 +218,7 @@ class Player(pygame.sprite.Sprite):
                 'interact_up': interact_sheet.load_strip((0, 64, 16, 16), 4),
             }
             self.animations, self.animations_flip = _preescalar_animaciones(raw, self.total_scale)
-            # Máscaras pre-calculadas — nunca más en update()
+            #máscaras pre-calculadas para no petar el update luego
             self.masks      = {k: [pygame.mask.from_surface(f) for f in v]
                                for k, v in self.animations.items()}
             self.masks_flip = {k: [pygame.mask.from_surface(f) for f in v]
@@ -320,11 +320,11 @@ class Player(pygame.sprite.Sprite):
             dx /= magnitud
             dy /= magnitud
 
-            # Al moverse, se reproduce el sonido de los pasos del personaje:
+            #reproducimos sonido de pasos al caminar
             if not self.audio.canal_personaje.get_busy():
                 self.audio.reproducir_sonido("pasos", self.audio.canal_personaje)
         else:
-            # Cuando el personaje se pare, se detiene el audio:
+            #si nos paramos cortamos el audio
             if self.audio.canal_personaje.get_busy():
                 self.audio.canal_personaje.stop()
         
@@ -379,7 +379,7 @@ class Player(pygame.sprite.Sprite):
             self.animation_timer = 0
             self.current_frame = (self.current_frame + 1) % len(self.animations[self.current_animation])
 
-        # Imagen y máscara PRE-CALCULADAS — sin transform en runtime
+        #pillamos imagen y máscara ya calculadas para que vaya fluido
         if self.facing_right:
             self.image = self.animations[self.current_animation][self.current_frame]
             self.mask  = self.masks[self.current_animation][self.current_frame]
@@ -471,7 +471,7 @@ class Dia2(EstadoProgresion):
             f"Hoy quiero {juego.tortillas_objetivo} tortillas. ¡A los fogones!"
         ]
 
-        # Se usa callback para añadir diálogo tras el texto:
+        #usamos callback para meter diálogo después del texto
         def tras_dialogo2():
             self.audio.reproducir_sonido("m_una_tortillita")
         
@@ -504,7 +504,7 @@ class Noche2(EstadoProgresion):
         if not self.mensaje_mostrado and juego.obtener_sala_actual() == "fuera_de_cocina":
             #damos 150 píxeles de marxe para que a cámara termine o scroll
             if juego.jugador.hitbox.left > (juego.puerta_cocina.right + 150):
-                self.mensaje_mostrado = True #marcamos pa evitar bucles infinitos
+                self.mensaje_mostrado = True #marcamos para evitar bucles infinitos
 
                 self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
                 from escena_dialogo import EscenaDialogo
@@ -534,7 +534,7 @@ class Dia3(EstadoProgresion):
             "¡Venga, dale a esos huevos!"
         ]
 
-        # Se usa callback para añadir diálogo tras el texto:
+        #usamos callback para meter diálogo después del texto
         def tras_dialogo3():
             self.audio.reproducir_sonido("m_risa_malevola")
 
@@ -706,8 +706,12 @@ class EscenaMuerte(Escena):
             
         #debuxar Michel normal en Fase 4
         if self.mostrar_michel_estatico and self.img_michel_estatico:
-            rect_michel = self.img_michel_estatico.get_rect(center=(ANCHO // 2, ALTO // 2 - 50))
-            pantalla.blit(self.img_michel_estatico, rect_michel)   
+            #hacemos el hundimiento igual que en la intro para alinearlo con la caja
+            textbox_top_y = ALTO - 150
+            hundimiento = 30
+            char_x = (ANCHO - self.img_michel_estatico.get_width()) // 2
+            char_y = textbox_top_y - self.img_michel_estatico.get_height() + hundimiento
+            pantalla.blit(self.img_michel_estatico, (char_x, char_y))
             
         #debuxar Michel jumpscare creciendo en fase 6
         if self.fase == 6 and self.img_michel_jumpscare:
@@ -761,7 +765,7 @@ class Juego(Escena):
 
         self.camara = Camara(ANCHO, ALTO, ANCHO_MAPA, ALTO_MAPA, zoom = 0.95)
 
-        # Se definen las coordenadas de las salas para el funcionamiento de la cámara:
+        #coordenadas de las salas para la cámara
         self.salas = [
             pygame.Rect(0, ALTO_MAPA - 640, 832, 630), # Cocina
             pygame.Rect(1280, 1910, 832, 660), # Sala del medio derecha
@@ -777,7 +781,7 @@ class Juego(Escena):
             (ANCHO_MAPA, ALTO_MAPA),
         )
 
-        # Al comenzar, la cámara se centra en la sala inicial (la cocina):
+        #al empezar centramos la cámara en la cocina
         self.sala_inicial = pygame.Rect(0, ALTO_MAPA - 640, 828, 630)
         x = -self.sala_inicial.centerx + int(ANCHO / 2)
         y = -self.sala_inicial.centery + int(ALTO / 2)
@@ -831,7 +835,7 @@ class Juego(Escena):
         else:
             self._area_bg_imgs = None
         
-        # Control del fade in inicial
+        #control del fade in al principio
         self._fade_inicial = True
         self._fade_alpha = 255
 
@@ -920,10 +924,10 @@ class Juego(Escena):
                     self.cocina.tutorial_activo = not self.cocina.tutorial_activo
                     self.cocina.ayuda_pulsada_alguna_vez = True
 
-                #cambiar
-                if evento.key == pygame.K_t:
-                    self.cocina.puntos += 1
-                    self.audio.reproducir_sonido("campana", self.audio.canal_accion)
+                # DEBUG
+                #if evento.key == pygame.K_t:
+                #    self.cocina.puntos += 1
+                #    self.audio.reproducir_sonido("campana", self.audio.canal_accion)
 
                 #pizarra
                 if evento.key in [pygame.K_e, pygame.K_x]:
@@ -1057,8 +1061,8 @@ class Juego(Escena):
                             self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_carlitos"))        
 
     
-    # Se gestionan las salas en las que se encuentra el jugador (para audio, y quizá otros).
-    # De momento, sólo es necesario saber si el jugador se encuentra o no en la cocina:
+    #miramos en qué sala está el jugador para el audio y eso
+    #por ahora solo nos importa si está en la cocina o no
     def obtener_sala_actual(self):
             pos = self.jugador.hitbox.center
 
@@ -1118,8 +1122,8 @@ class Juego(Escena):
 
     #game over ao non completar a pizarra
     def perder_juego(self):
-        # ¡Arrancamos la secuencia cinemática de muerte!
-        # Usamos cambiarEscena para destruir el juego por completo
+        #arrancamos la cinemática de muerte
+        #cambiamos escena para cargarnos el juego entero
         self.director.cambiarEscena(EscenaMuerte(self.director))
 
 
@@ -1195,7 +1199,7 @@ class Juego(Escena):
         pantalla.fill((0, 0, 0))
         
 
-        # Ahora, la pantalla se dibuja y luego se escala correctamente:
+        #dibujamos la pantalla y luego la escalamos bien
         self._render_surf.fill((0, 0, 0, 0))
         if not self.agujero_excavado:
             fondo_actual = self.fondo_pared
@@ -1261,7 +1265,7 @@ class Juego(Escena):
 
         self.room2_event.draw_light_overlay(self._render_surf, self.camara, self.jugador)
 
-        # Cubrir as salas onde o xogador NON está (dentro de _render_surf, antes de escalar):
+        #cubrimos las salas donde no está el jugador antes de escalar
         if self._area_bg_imgs:
             for sala, area_img in zip(self.salas, self._area_bg_imgs):
                 if not sala.collidepoint(self.jugador.hitbox.center):
@@ -1282,7 +1286,7 @@ class Juego(Escena):
             rect_brillo = self.camara.aplicar_rect(self.zona_cuchara)
             self._render_surf.blit(surf_luz, (rect_brillo.centerx - 20, rect_brillo.centery - 20))
 
-        # La resolución anterior se escala al tamaño real de la pantalla
+        #escalamos la resolución a la pantalla real
         scaled_surface = pygame.transform.scale(self._render_surf, (ANCHO, ALTO))
         pantalla.blit(scaled_surface, (0, 0))
 
@@ -1297,7 +1301,7 @@ class Juego(Escena):
             overlay_dia.fill((0, 0, 0, 70)) 
             pantalla.blit(overlay_dia, (0, 0))    
 
-        # Fade in inicial al empezar el juego
+        #fade in para cuando empieza el juego
         if self._fade_inicial:
             fade_surface = pygame.Surface(pantalla.get_size())
             fade_surface.fill((0, 0, 0))

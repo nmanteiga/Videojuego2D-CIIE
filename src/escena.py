@@ -1,8 +1,8 @@
-# Dimensiones de la pantalla
+# tamanño de la ventana
 ANCHO = 800
 ALTO = 600
 
-# Clase Escena con los métodos abstractos
+# plantilla base para las dmas escenas (no tocar)
 class Escena:
     
     def __init__(self, director):

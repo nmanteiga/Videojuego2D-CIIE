@@ -8,7 +8,8 @@ ROOM2_INSIDE_TRIGGER_COL = (187, 414)
 ROOM2_KEY_COL_POS = (188, 232)
 
 
-class Room2Key:
+class Room2Key: 
+    # llave a mano pq encontrar sprites gratuitos es difícil (gracias reddit)
     def __init__(self, center):
         self.image = pygame.Surface((52, 26), pygame.SRCALPHA)
         oro = (245, 208, 66)
@@ -91,19 +92,19 @@ class Room2Event:
     def update(self, player, delta_ms):
         player_center = player.hitbox.center
 
-        # jugador dentro de room2 y a la izquierda de la puerta
-        # para que no haya bugs atrancándose con la puerta
+        # jugador dentro de la habitacion y a la izquierda de la puerta
+        # esto es asi para que no haya bugs raros atrancandose con la puerta
         inside_room2 = self.room2_rect.collidepoint(player_center)
         past_door_line = player_center[0] < self.door_line_world_x
         
-        # jugador ha cruzado completamente cuando todo su hitbox está dentro
+        # sabemos que cruzo entero cuando todo su cuadrado de colision esta dentro
         fully_past_door = player.hitbox.right < self.door_line_world_x
 
-        # activar evento (luz) cuando el centro cruza
+        # encender la luz o evento cuando entra
         if not self.event_started and inside_room2 and past_door_line:
             self.event_started = True
 
-        # bloquear puerta solo cuando cruzó completamente
+        # echamos llave solo si ya cruzo entero para no pillarle un pie
         if self.event_started and not self.door_locked and not self.key_collected and fully_past_door:
             self.door_locked = True
 
@@ -153,7 +154,7 @@ class Room2Event:
         ):
             pygame.draw.circle(self._darkness_surf, (0, 0, 0, alpha), light_center, radius)
 
-        # halo de luz en la puerta durante la animación de enfoque
+        # iluminar la puerta durante el tiempo que dura la animacion
         if self.focus_door_timer_ms > 0:
             door_center = camera.aplicar_rect(self.door_block_rect).center
             door_light_radius = 120

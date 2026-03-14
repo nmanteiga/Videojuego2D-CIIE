@@ -534,7 +534,6 @@ class XestorCocina:
     }
 
     #tutorial para o cociñado paso a paso e controis xerais
-
     _TUTORIAL_ITEMS = [
         ("Caja de Patatas",    "E: Coger patatas"),
         ("Tabla de Cortar",    "E: Dejar patatas · X (×10): Cortar · E: Coger patatas cortadas"),

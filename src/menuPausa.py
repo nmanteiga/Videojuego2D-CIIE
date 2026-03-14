@@ -4,7 +4,7 @@ from pygame.locals import *
 from escena import *
 from gestorAudio import GestorAudio, VOL_MUSICA
 
-# Rutas para el icono de pausa
+# rutas para el icono de pausa
 HOME = os.path.dirname(__file__)
 ASSESTS_FILE = os.path.join(HOME, "..", "assets")
 GRAPHICS_FILE = os.path.join(ASSESTS_FILE, "graphics")

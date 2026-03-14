@@ -1,14 +1,14 @@
 import pygame
 import os
 from sprtesheet import SpriteSheet
-from escena import ANCHO, ALTO # Importamos el tamaño de la ventana (800x600)
+from escena import ANCHO, ALTO # pillamos el tamaño de pantalla 
 
-# Constantes compartidas
+# numeritos generales del mapa y tal
 SCALE = 4  
 ANCHO_MAPA = 1472
 ALTO_MAPA = 3200
 
-# Rutas de los sprites del jugador
+# donde estan guardabas las animaciones del pj
 HOME = os.path.dirname(__file__)
 ASSESTS_FILE = os.path.join(HOME, "..", "assets")
 GRAPHICS_FILE = os.path.join(ASSESTS_FILE, "graphics")
@@ -80,7 +80,7 @@ class Player(pygame.sprite.Sprite):
             print(f"Error cargando spritesheet: {e}")
 
         self.rect = self.image.get_rect()
-        # Spawn point por defecto
+        # donde aparece el jugador al inicio de la partida
         self.rect.center = (400, ALTO_MAPA - 300) 
         self.velocidad = 6 
         

@@ -15,7 +15,7 @@ class EscenaCinematicaFinal(Escena):
         MICHEL_SHEET = os.path.join(GRAPHICS_FILE, "characters", "míchel", "michel_sheet.png")
         CINEMATICA_FINAL_IMG = os.path.join(UI_FILE, "cinematica_final.png")
         
-        # Cargar imagen de cinematica final
+        # cargamos la fotillo del final si o si y si no nos quejamos
         self.cinematica_final_image = None
         try:
             img = pygame.image.load(CINEMATICA_FINAL_IMG).convert()
@@ -54,7 +54,7 @@ class EscenaCinematicaFinal(Escena):
         if len(director.pila) > 1:
             self.juego = director.pila[-2]
         
-        # variables de animación de Michel
+        # dnd sale michel corriendo 
         self.michel_x = ANCHO // 2 - 40  
         self.michel_y = ALTO + 100 
         self.michel_velocity = 12 
@@ -72,7 +72,7 @@ class EscenaCinematicaFinal(Escena):
         self.caracter_anterior = 0
         self.fade_alpha = 0
         
-        # Textos de cinemática final
+        # textos de cinemática final
         self.textos_negro = [
             "Michel consiguió atrapar a Carlitos justo antes de poder escapar",
             "Michel no quería que Carlitos volviera a escaparse...",
@@ -81,12 +81,11 @@ class EscenaCinematicaFinal(Escena):
         ]
         self.indice_texto_negro = 0
 
-        self.audio_m_reproducido = False # Para controlar que el audio de Michel no se reproduzca de más
-        self.tiempo_pasos = 100 # Para el sonido de los pasos de Michel:
+        self.audio_m_reproducido = False # chequeo para audio 
+        self.tiempo_pasos = 100 # sonido pisadas d michel cuando corre:
         self.intervalo_pasos = 200
     
     def eventos(self, lista_eventos):
-        """Permite avanzar en los diálogos o en la cinemática"""
         for evento in lista_eventos:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_SPACE:
                 if self.fase == "dialogo_inicial":
@@ -100,8 +99,8 @@ class EscenaCinematicaFinal(Escena):
                 elif self.fase == "captura_dialogo":
                     self.fase = "texto_negro_1"
                     self.tiempo_fase = 0
-                elif self.fase in ["texto_negro_1", "texto_negro_2", "texto_negro_3"]:
-                    # Solo permitir avanzar si el texto está completamente visible
+                elif self.fase in ["texto_negro_1", "texto_negro_2", "texto_negro_3", "texto_negro_4"]:
+                    # bloqueo la barra espaciadora hasta q salga la frase entera para q no se raye
                     if self.fase == "texto_negro_1" and self.caracteres_mostrados >= len(self.textos_negro[0]):
                         self.fase = "texto_negro_2"
                         self.tiempo_fase = 0
@@ -111,12 +110,15 @@ class EscenaCinematicaFinal(Escena):
                         self.tiempo_fase = 0
                         self.caracteres_mostrados = 0
                     elif self.fase == "texto_negro_3" and self.caracteres_mostrados >= len(self.textos_negro[2]):
+                        self.fase = "texto_negro_4"
+                        self.tiempo_fase = 0
+                        self.caracteres_mostrados = 0
+                    elif self.fase == "texto_negro_4" and self.caracteres_mostrados >= len(self.textos_negro[3]):
                         self.fase = "imagen_sin_textbox"
                         self.tiempo_fase = 0
                     self.dialogo_mostrado = False
     
     def update(self, tiempo_pasado):
-        """Actualiza la cinemática"""
         if not self.michel_loaded:
             self.director.salirEscena()
             return
@@ -151,7 +153,7 @@ class EscenaCinematicaFinal(Escena):
         elif self.fase == "corriendo":
             self.michel_y -= self.michel_velocity
 
-            # Para el sonido de los pasos de Michel:
+            # pisaditas de michel
             self.tiempo_pasos += tiempo_pasado
             if self.tiempo_pasos >= self.intervalo_pasos:
                 self.audio.reproducir_sonido("pasos")
@@ -172,16 +174,16 @@ class EscenaCinematicaFinal(Escena):
                 self.tiempo_fase = 0
         
         elif self.fase == "captura_dialogo":
-            if not self.audio_m_reproducido: # El audio solo se reproduce una vez
+            if not self.audio_m_reproducido: # q hable solo una vez 
                 self.audio.reproducir_sonido("m_amenaza")
                 self.audio_m_reproducido = True
 
-            # Michel atrapa a Carlitos, pasar a los textos de fondo negro
+            # cuando lo pilla al fundido negro y los textitos
             if self.tiempo_fase >= 1000:
                 self.fase = "texto_negro_1"
                 self.tiempo_fase = 0
                 self.dialogo_mostrado = False
-                self.caracteres_mostrados = 0  # Resetear para animar el texto
+                self.caracteres_mostrados = 0  # reinicia para q pinte bien la frase
         
         elif self.fase == "texto_negro_1":
             if self.tiempo_fase < 300:
@@ -195,10 +197,10 @@ class EscenaCinematicaFinal(Escena):
                 self.fase = "texto_negro_2"
                 self.tiempo_fase = 0
                 self.dialogo_mostrado = False
-                self.caracteres_mostrados = 0  # Resetear para animar el siguiente texto
+                self.caracteres_mostrados = 0  # reinicia para q pinte bien la frase
         
         elif self.fase == "texto_negro_2":
-            self.audio_m_reproducido = False # Resetea la variable para reutilizarla
+            self.audio_m_reproducido = False # reseteando para volver a usar
 
             if self.tiempo_fase < 300:
                 pass
@@ -211,29 +213,44 @@ class EscenaCinematicaFinal(Escena):
                 self.fase = "texto_negro_3"
                 self.tiempo_fase = 0
                 self.dialogo_mostrado = False
-                self.caracteres_mostrados = 0  # Resetear para animar el siguiente texto
+                self.caracteres_mostrados = 0  # reinicia para q pinte bien la frase
         
         elif self.fase == "texto_negro_3":
-            # Mostrar el textbox con animación de caracteres
+            # pintamos las letras poco a poco
             if self.tiempo_fase < 300:
                 pass
             else:
                 self.dialogo_mostrado = True
                 if self.caracteres_mostrados < len(self.textos_negro[2]):
                     self.caracteres_mostrados += self.velocidad_escritura * tiempo_pasado
+
+            if self.tiempo_fase >= 4000:
+                self.fase = "texto_negro_4"
+                self.tiempo_fase = 0
+                self.dialogo_mostrado = False
+                self.caracteres_mostrados = 0
+        
+        elif self.fase == "texto_negro_4":
+            # pintamos las letras poco a poco
+            if self.tiempo_fase < 300:
+                pass
+            else:
+                self.dialogo_mostrado = True
+                if self.caracteres_mostrados < len(self.textos_negro[3]):
+                    self.caracteres_mostrados += self.velocidad_escritura * tiempo_pasado
         
         elif self.fase == "imagen_sin_textbox":
-            if not self.audio_m_reproducido: # El audio solo se reproduce una vez
+            if not self.audio_m_reproducido: # para q no suene doble
                 self.audio.reproducir_sonido("m_risa_malevola_final")
                 self.audio_m_reproducido = True
 
-            # La imagen se queda 3 segundos
+            # unos segundos de espera para darle drama
             if self.tiempo_fase >= 3000:
                 self.fase = "fade_out_final"
                 self.tiempo_fase = 0
         
         elif self.fase == "fade_out_final":
-            # Fade out a negro
+            # fundido negro para acabar
             fade_progress = min(1.0, self.tiempo_fase / 2000.0)
             self.fade_alpha = int(255 * fade_progress)
             
@@ -243,7 +260,7 @@ class EscenaCinematicaFinal(Escena):
                 self.director.cambiarEscena(MenuPrincipal(self.director))
     
     def dibujar(self, pantalla):
-        # Solo dibujar el juego al principio, cuando hay Michel visible
+        # dibuja el fondo de detras solo cuando aun estan corriendo
         if self.fase in ["dialogo_inicial", "giro_personaje", "corriendo", "pausa", "captura_dialogo"]:
             if len(self.director.pila) > 1:
                 for i in range(len(self.director.pila) - 1, -1, -1):
@@ -267,18 +284,18 @@ class EscenaCinematicaFinal(Escena):
             overlay.fill((12, 4, 33, 180))  
             pantalla.blit(overlay, (0, 0))
         
-        # Textos en fondo negro (todos con textbox)
-        if self.fase in ["texto_negro_1", "texto_negro_2", "texto_negro_3"]:
+        # partes con la pantalla en negro (salen cajitas de texto)
+        if self.fase in ["texto_negro_1", "texto_negro_2", "texto_negro_3", "texto_negro_4"]:
             pantalla.fill((0, 0, 0))
         
-        # Imagen de cinemática final
+        # al final sale la foto 
         if self.fase in ["imagen_sin_textbox"]:
-            pantalla.fill((0, 0, 0))  # Fondo negro
+            pantalla.fill((0, 0, 0))  # borro todo y pongo en nero
             if self.cinematica_final_image:
                 pantalla.blit(self.cinematica_final_image, (0, 0))
         
-        # Textbox en texto_negro para todos los textos_negro con animación de caracteres
-        if self.fase in ["texto_negro_1", "texto_negro_2", "texto_negro_3"] and self.dialogo_mostrado:
+        # pintamos los textitos poco a poco como en pokemon
+        if self.fase in ["texto_negro_1", "texto_negro_2", "texto_negro_3", "texto_negro_4"] and self.dialogo_mostrado:
             HOME = os.path.dirname(__file__)
             FONT_FILE = os.path.join(HOME, "..", "assets", "fonts", "PressStart2P-Regular.ttf")
             try:
@@ -286,19 +303,21 @@ class EscenaCinematicaFinal(Escena):
             except:
                 font = pygame.font.Font(None, 14)
             
-            # Seleccionar el texto según la fase
+            # cogemos el texto que toque
             if self.fase == "texto_negro_1":
                 texto_actual = self.textos_negro[0]
             elif self.fase == "texto_negro_2":
                 texto_actual = self.textos_negro[1]
-            else:  # texto_negro_3
+            elif self.fase == "texto_negro_3":
                 texto_actual = self.textos_negro[2]
+            else:  # texto_negro_4
+                texto_actual = self.textos_negro[3]
             
             caja_rect = pygame.Rect(40, ALTO - 120, ANCHO - 80, 100)
             pygame.draw.rect(pantalla, (40, 40, 60), caja_rect, border_radius=10)
             pygame.draw.rect(pantalla, (255, 215, 0), caja_rect, 3, border_radius=10)
             
-            # Word wrap para el texto (como en escena_dialogo.py)
+            # separar texto para que no se salga de la caja (igual que que en escena_dialogo)
             max_ancho_texto = caja_rect.width - 40
             palabras = texto_actual.split(' ')
             linas = []
@@ -316,7 +335,7 @@ class EscenaCinematicaFinal(Escena):
             if lina_actual:
                 linas.append(lina_actual.rstrip())
             
-            # Dibujar líneas de texto progresivamente (como en escena_dialogo.py)
+            # escribir poquito a poco lineas (copiado y pegao del dialogo)
             caracteres_restantes = int(self.caracteres_mostrados)
             espazamento_linas = 8
             y_offset = 0
@@ -325,7 +344,7 @@ class EscenaCinematicaFinal(Escena):
                 if caracteres_restantes <= 0:
                     break
                 
-                # Dibuja solo los caracteres que tocan en esta línea
+                # dibuja solo lo q toque
                 texto_lina = lina[:caracteres_restantes]
                 caracteres_restantes -= len(lina)
                 
@@ -333,12 +352,12 @@ class EscenaCinematicaFinal(Escena):
                 pantalla.blit(render, (caja_rect.x + 20, caja_rect.y + 20 + y_offset))
                 y_offset += render.get_height() + espazamento_linas
             
-            # Indicador de ESPACIO cuando el texto está completo
+            # chivato de pulsar espacio cuando acabe
             if self.caracteres_mostrados >= len(texto_actual):
                 ind_render = font.render("ESPACIO", True, (200, 200, 200))
                 pantalla.blit(ind_render, (caja_rect.right - 120, caja_rect.bottom - 25))
         
-        # Diálogos en primeras fases
+        # cuadros de texto del principio
         if self.dialogo_mostrado and self.fase == "dialogo_inicial":
             HOME = os.path.dirname(__file__)
             FONT_FILE = os.path.join(HOME, "..", "assets", "fonts", "PressStart2P-Regular.ttf")
@@ -371,11 +390,9 @@ class EscenaCinematicaFinal(Escena):
                 font = pygame.font.Font(FONT_FILE, 24)
             except:
                 font = pygame.font.Font(None, 24)
-            
-            # Se ha removido el texto "¡Fuiste atrapado!"
             pass
         
-        # Fade a negro
+        # fade a negro
         if self.fade_alpha > 0:
             fade_surf = pygame.Surface((ANCHO, ALTO))
             fade_surf.fill((0, 0, 0))

@@ -3,7 +3,7 @@ import os
 from PIL import Image
 from escena import Escena, ANCHO, ALTO
 from game import Juego, FONDO_IMG, GRAPHICS_FILE
-from escena_cinematica_principio import run_cinematics
+from escena_cinematica_principio import EscenaCinematicaPrincipio
 from gestorAudio import GestorAudio
 
 HOME = os.path.dirname(__file__)
@@ -11,6 +11,7 @@ ASSETS_FILE = os.path.join(HOME, "..", "assets")
 FONT_FILE = os.path.join(ASSETS_FILE, "fonts", "PressStart2P-Regular.ttf")
 MENU_GIF = os.path.join(GRAPHICS_FILE, "ui", "menuInicio.gif")
 
+# cargamos el gif y lo separamos en frames para que pygame no de problemas
 def cargar_gif(ruta, ancho, alto):
     frames = []
     duraciones = []
@@ -18,14 +19,14 @@ def cargar_gif(ruta, ancho, alto):
     
     try:
         while True:
-            # Convertir frame a formato pygame
+            # convertir frame a formato pygame
             frame = gif.convert("RGBA")
             frame = frame.resize((ancho, alto), Image.Resampling.LANCZOS)
             data = frame.tobytes()
             superficie = pygame.image.fromstring(data, (ancho, alto), "RGBA")
             frames.append(superficie)
             
-            # Obtener duración del frame (en ms)
+            # obtener duración del frame (en ms)
             duracion = gif.info.get('duration', 100)
             duraciones.append(duracion)
             
@@ -141,10 +142,10 @@ class MenuPrincipal(Escena):
         self.listaPaneles = {}
         self.listaPaneles['INICIAL'] = PanelInicialGUI(self)
         self.panelActual = 'INICIAL'
-        self.audio = GestorAudio() # Audio
-        self._tiempo_ultimo_click = 0  # Evitar múltiples clicks
+        self.audio = GestorAudio() # pilla el audio
+        self._tiempo_ultimo_click = 0  # evitar spam de clicks
 
-        # Música del menú de inicio (temporalmente la de escape):
+        # musiquita de fondo para el menú
         self.audio.reproducir_musica("escape")
 
     def update(self, tiempo_pasado):
@@ -156,7 +157,7 @@ class MenuPrincipal(Escena):
             if evento.type == pygame.QUIT:
                 self.director.salirPrograma()
         
-        # Solo procesar clicks si ha pasado suficiente tiempo desde el último
+        # solo pilla clicks si paso un rato desde el q hicimos antes
         if self._tiempo_ultimo_click >= 300:
             self.listaPaneles[self.panelActual].eventos(lista_eventos)
             if any(e.type == pygame.MOUSEBUTTONDOWN for e in lista_eventos):
@@ -168,9 +169,8 @@ class MenuPrincipal(Escena):
     def ejecutarJuego(self):
         self.audio.reproducir_sonido("click_menu_big", self.audio.canal_ui)
         self.audio.detener_musica(500)
-        run_cinematics(self.director.screen)
-        juego = Juego(self.director)
-        self.director.cambiarEscena(juego) 
+        cinematica_inicial = EscenaCinematicaPrincipio(self.director)
+        self.director.cambiarEscena(cinematica_inicial)
 
     def salirPrograma(self):
         self.director.salirPrograma()

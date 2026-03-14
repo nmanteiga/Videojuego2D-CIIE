@@ -8,17 +8,17 @@ from pygame.locals import *
 class Director():
 
     def __init__(self):
-        # Inicializamos la pantalla y el modo gráfico
+        # enganchamos la ventana del juego
         self.screen = pygame.display.set_mode((ANCHO, ALTO))
         pygame.display.set_caption("Scape From FIC")
 
-        # Pila de escenas
+        # aquí guardamos las escenas
         self.pila = []
 
-        # Flag que nos indica cuando quieren salir de la escena
+        # flag para saber cuando cerrar
         self.salir_escena = False
         
-        # Reloj
+        # relojito para los fps
         self.reloj = pygame.time.Clock()
 
 
@@ -40,38 +40,34 @@ class Director():
 
 
     def ejecutar(self):
-        # Mientras haya escenas en la pila, ejecutaremos la de arriba
+        # mientras tengamos escenas cargadas vamos tirando
         while (len(self.pila)>0):
 
-            # Se coge la escena a ejecutar como la que este en la cima de la pila
+            # cogemos la que está más arriba 
             escena = self.pila[len(self.pila)-1]
-
-            # Ejecutamos el bucle de eventos hasta que termine la escena
             self.bucle(escena)
 
 
     def salirEscena(self):
-        # Indicamos en el flag que se quiere salir de la escena
         self.salir_escena = True
 
-        # Eliminamos la escena actual de la pila (si la hay)
+        # hacemos pop de la lista si hay algo
         if (len(self.pila)>0):
             self.pila.pop()
 
     def salirPrograma(self):
-        # Vaciamos la lista de escenas pendientes
+        # se vacía todo 
         self.pila = []
         self.salir_escena = True
 
     def cambiarEscena(self, escena):
         self.salirEscena()
 
-        # Ponemos la escena pasada en la cima de la pila
+        # metemos la nueva
         self.pila.append(escena)
 
     def apilarEscena(self, escena):
         self.salir_escena = True
         
-        # Ponemos la escena pasada en la cima de la pila
-        #  (por encima de la actual)
+        # metemos la escena pasada por encima de la que hay
         self.pila.append(escena)
