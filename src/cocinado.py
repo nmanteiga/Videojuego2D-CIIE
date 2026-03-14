@@ -438,7 +438,7 @@ class XestorCocina:
 
         if (prato.ingrediente_na_estacion and
                 prato.ingrediente_na_estacion.estado == PATACA_FRITA and
-                cunca.ovo is None):
+                cunca.ovo is None and not cunca.mestura_lista):
             return (self.neveira, "highlight_ovos.png")
 
         if (fogon.ingrediente_na_estacion and
