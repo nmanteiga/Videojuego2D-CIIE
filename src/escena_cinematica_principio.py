@@ -173,9 +173,12 @@ class EscenaCinematicaPrincipio(Escena):
 
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
-            pass # añadido para que no rompa el bucle por tener todo comentado
-            # DEBUG
-            #if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+            if evento.type == pygame.QUIT:
+                self.director.salirPrograma()
+                
+            # en la cinemática bloqueamos otras teclas pa no liar al director
+            # DEBUG para skipear cinemática entera (desactivado)
+            # if evento.type == pygame.KEYDOWN and evento.key == pygame.K_q:
             #    self.saltar_cinematica()
 
     def update(self, tiempo_pasado):

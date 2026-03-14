@@ -87,6 +87,9 @@ class EscenaCinematicaFinal(Escena):
     
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
+            if evento.type == pygame.QUIT:
+                self.director.salirPrograma()
+                
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_SPACE:
                 if self.fase == "dialogo_inicial":
                     self.fase = "giro_personaje"

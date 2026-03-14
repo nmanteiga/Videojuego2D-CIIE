@@ -1022,7 +1022,7 @@ class Juego(Escena):
                     if isinstance(self.estado_actual, Noche2) and self.bloqueo_laberinto.inflate(20, 20).colliderect(self.jugador.hitbox):
                         from escena_dialogo import EscenaDialogo
                         self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
-                        dialogo = ["Debería explorar esta zona otro día."]
+                        dialogo = ["Debería explorar esta zona luego."]
                         self.director.apilarEscena(EscenaDialogo(self.director, dialogo, "voz_carlitos"))
 
                     #Noche 3: a sala da pizarra está fechada

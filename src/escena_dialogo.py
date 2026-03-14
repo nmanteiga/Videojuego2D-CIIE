@@ -54,10 +54,6 @@ class EscenaDialogo(Escena):
     def eventos(self, lista_eventos):
         for evento in lista_eventos:
             if evento.type == pygame.KEYDOWN:
-                
-                if evento.key == pygame.K_ESCAPE:
-                    self.director.salirEscena()
-                    return 
                 if evento.key == pygame.K_SPACE:
                     if self.indice_texto >= len(self.textos):
                         return
