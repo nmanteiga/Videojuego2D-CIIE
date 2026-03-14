@@ -25,22 +25,16 @@ class Director():
     def bucle(self, escena):
         self.salir_escena = False
 
-        # Eliminamos todos los eventos producidos antes de entrar en el bucle
         pygame.event.clear()
         
-        # El bucle del juego, las acciones que se realicen se harán en cada escena
         while not self.salir_escena:
-
-            # Sincronizar el juego a 60 fps
             tiempo_pasado = self.reloj.tick(60)
-
-            # Pasamos los eventos a la escena
             escena.eventos(pygame.event.get())
 
-            # Actualiza la escena
-            escena.update(tiempo_pasado)
+            if self.salir_escena:
+                break
 
-            # Se dibuja en pantalla
+            escena.update(tiempo_pasado)
             escena.dibujar(self.screen)
             pygame.display.flip()
 

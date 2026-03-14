@@ -267,11 +267,11 @@ dialogues2 = [
 
 dialogues3 = [
     "Hola pichi, ¿qué vas a querer?",
-    "¿Una tortilla? Maaaaarchando papi",
+    "¿Una tortilla? Maaaaarchando papi.",
 ]
 
 dialogues3_jumpscare = [
-    "LÁZARO UNA TORTILLA PARA EL RUBIO ESTE"
+    "¡LÁZARO UNA TORTILLA PARA EL RUBIO ESTE!"
 ]
 
 dialogues3_tras_jumpscare = [
@@ -279,10 +279,10 @@ dialogues3_tras_jumpscare = [
 ]
 
 dialogues4_tortilla = [
-    "Aquí tienes tu tortilla, papi",
-    "Que aproveche",
-    "Espera pichi, primero tienes que pagar",
-    "Serían $$$ en total"
+    "Aquí tienes tu tortilla, papi.",
+    "Que aproveche.",
+    "Espera pichi, primero tienes que pagar.",
+    "Serían $$$ en total."
 ]
 
 dialogues4_enfadado = [

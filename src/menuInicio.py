@@ -169,7 +169,6 @@ class MenuPrincipal(Escena):
         self.audio.reproducir_sonido("click_menu_big", self.audio.canal_ui)
         self.audio.detener_musica(500)
         run_cinematics(self.director.screen)
-        pygame.time.delay(100)  # Pequeño delay para que el sistema se recupere
         juego = Juego(self.director)
         self.director.cambiarEscena(juego) 
 
