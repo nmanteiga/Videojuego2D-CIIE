@@ -231,14 +231,14 @@ class Player(pygame.sprite.Sprite):
         self.current_animation = 'idle_down'
         self.facing_right = True
         self.current_frame = 0
-        self.animation_speed = 4/60
+        self.animation_speed = 6/60
         self.animation_timer = 0
         
         self.image = self.animations['idle_down'][0]
         self.mask  = self.masks['idle_down'][0]
         self.rect  = self.image.get_rect()
         self.rect.center = (400, ALTO_MAPA - 300)
-        self.velocidad = 6
+        self.velocidad = 5
 
 
         HITBOX_ANCHO = 70
