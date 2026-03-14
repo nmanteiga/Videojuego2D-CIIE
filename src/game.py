@@ -419,12 +419,7 @@ class Dia1(EstadoProgresion):
             "¡Ponte a cocinar ya!"
         ]
 
-        #engadido callback para activar o tutorial da cociña
-        def activar_tutorial():
-            self.audio.reproducir_sonido("burbuja_texto", self.audio.canal_ui)
-            juego.cocina.tutorial_activo = True
-
-        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo, "voz_michel", callback_fin=activar_tutorial))
+        juego.director.apilarEscena(EscenaDialogo(juego.director, dialogo, "voz_michel"))
 
     def update(self, juego):
         #transición: unha vez feitas as 3 tortillas, pasa á Noche 1
@@ -658,6 +653,7 @@ class EscenaMuerte(Escena):
             if (tiempo_actual - self.tiempo_golpe) >= 2000:
                 self.audio.reproducir_musica("jumpscare_musica")
                 self.mostrar_michel_estatico = True
+                pygame.time.delay(1000)
                 self.dialogo_jumpscare_lanzado = True 
                 
                 from escena_dialogo import EscenaDialogo
@@ -847,6 +843,8 @@ class Juego(Escena):
         
         self.juego_arrancado = False
 
+        self.ayuda_pulsada_alguna_vez = False
+
 
         #patrón Comando: sistema de disparadores para lanzar diálogos ou eventos en función da posición do xogador, a cámara, e outros factores
         #funcións auxiliares para simplificar a creación dos disparadores, callbacks Patrón Comando
@@ -915,6 +913,12 @@ class Juego(Escena):
                     self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
                     self.audio.cambiar_volumen_musica(VOL_MUSICA / 2) # Se atenúa el volúmen de la música al pausar
                     self.director.apilarEscena(MenuPausa(self.director))
+
+                if evento.key == pygame.K_h:
+                    self.audio.reproducir_sonido("click_menu_bw", self.audio.canal_ui)
+                    #alternar aberto e fechado
+                    self.cocina.tutorial_activo = not self.cocina.tutorial_activo
+                    self.cocina.ayuda_pulsada_alguna_vez = True
 
                 #cambiar
                 if evento.key == pygame.K_t:

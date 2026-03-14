@@ -371,6 +371,7 @@ class XestorCocina:
         self.primeira_tortilla_feita = False
         self.deuda = 3.00
         self.tutorial_activo = False
+        self.ayuda_pulsada_alguna_vez = False
 
     def sumar_punto(self):
         self.puntos += 1
@@ -514,11 +515,6 @@ class XestorCocina:
         for evento in lista_eventos:
             if evento.type == pygame.KEYDOWN:
                 if self.tutorial_activo:
-                    if evento.key == pygame.K_SPACE:
-                        self.tutorial_activo = False
-
-                        # Se reproduce este sonido tras ver el tutorial, cuando comienza el primer día:
-                        self.audio.reproducir_sonido("m_una_tortillita")
                     return
                 if evento.key == pygame.K_e:   self.accion_e()
                 elif evento.key == pygame.K_x: self.accion_x()
@@ -591,11 +587,11 @@ class XestorCocina:
         pygame.draw.line(pantalla, (100, 100, 150),
             (panel_x + 20, sep_y), (panel_x + panel_w - 20, sep_y), 1)
 
-        controles = "WASD: Moverse  ·  E: Coger/Dejar  ·  X: Acción  ·  ESC: Pausa"
+        controles = "WASD: Moverse  ·  E: Coger/Dejar/Interactuar  ·  X: Acción  ·  ESC: Pausa"
         txt_ctrl = fonte_item.render(controles, True, (180, 180, 255))
         pantalla.blit(txt_ctrl, (panel_x + (panel_w - txt_ctrl.get_width()) // 2, sep_y + 8))
 
-        hint = fonte_hint.render("[ ESPACIO ] para continuar", True, (255, 255, 100))
+        hint = fonte_hint.render("[H] para continuar", True, (255, 255, 100))
         pantalla.blit(hint, (panel_x + (panel_w - hint.get_width()) // 2, panel_y + panel_h - 32))
 
     def dibujar_highlight(self, pantalla, camara):
@@ -692,6 +688,11 @@ class XestorCocina:
                 pantalla.blit(fonte.render(f"E: {acc_e}", True, cor), (10, y)); y += 25
             if acc_x:
                 pantalla.blit(fonte.render(f"X: {acc_x}", True, cor), (10, y))
+
+        #fóra do "if self._estacion_preto:" para que se poida acceder sempre
+        if not self.ayuda_pulsada_alguna_vez:
+            txt_ayuda = fonte.render("Ayuda: [H]", True, COR_XOGADOR_HUD)
+            pantalla.blit(txt_ayuda, (10, 170)) 
 
     def _dibujar_sprite_estacion(self, pantalla, camara, sprite, rect, offset_x=0, offset_y=0):
         if sprite is None:
