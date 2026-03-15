@@ -48,6 +48,9 @@ class EscenaCinematicaPrincipio(Escena):
         self.dialogues4_enfadado = ["¿Cómo que no tienes dinero?", "¡¿?!"]
         self.dialogues4_golpe = ["(Carlitos siente un duro golpe y la vista se le pone en negro)"]
         self.dialogue_transicion = ["Parece que Michel ha secuestrado a Carlitos...", "Y lo va a obligar a trabajar en la cafetería para pagar su deuda."]
+
+        # control para evitar que el salto se ejecute dos veces
+        self.saltada = False
         
         # iniciar la cinemática
         self.cargar_fondo(os.path.join(self.GRAPHICS, "cinematica", "bus1.png"))
@@ -82,7 +85,28 @@ class EscenaCinematicaPrincipio(Escena):
 
     def lanzar_dialogo(self, textos, voz="voz_narrador"):
         self.estado = "PAUSADO"
-        self.director.apilarEscena(EscenaDialogo(self.director, textos, voz, callback_fin=self.avanzar))
+
+        # creamos el diálogo normal
+        dialogo = EscenaDialogo(self.director, textos, voz, callback_fin=self.avanzar)
+        
+        # guardamos su función original de detectar teclas
+        eventos_original = dialogo.eventos
+
+        # le inyectamos una función nueva que comprueba el ESCAPE primero
+        def eventos_con_escape(lista_eventos):
+            for evento in lista_eventos:
+                if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+                    if not getattr(self, 'saltada', False):
+                        self.saltada = True
+                        self.saltar_cinematica()
+                    return # cortamos la ejecución para destruir todo
+                    
+            # si no es ESCAPE, que haga lo normal
+            eventos_original(lista_eventos)
+            
+        # le aplicamos el "parche" y apilamos la escena
+        dialogo.eventos = eventos_con_escape
+        self.director.apilarEscena(dialogo)
 
     def ejecutar_fase(self):
         # máquina de estados que define la progresión lógica de la cinemática.
@@ -168,6 +192,10 @@ class EscenaCinematicaPrincipio(Escena):
     def saltar_cinematica(self):
         self.audio.detener_musica(100)
         self.audio.canal_texto.stop()
+
+        # vaciamos la pila por si hay diálogos a medio leer
+        self.director.pila = []
+
         from game import Juego
         self.director.cambiarEscena(Juego(self.director))
 
@@ -175,13 +203,20 @@ class EscenaCinematicaPrincipio(Escena):
         for evento in lista_eventos:
             if evento.type == pygame.QUIT:
                 self.director.salirPrograma()
-                
-            # en la cinemática bloqueamos otras teclas pa no liar al director
-            # DEBUG para skipear cinemática entera (desactivado)
-            # if evento.type == pygame.KEYDOWN and evento.key == pygame.K_q:
-            #    self.saltar_cinematica()
+
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+                if not self.saltada:
+                    self.saltada = True
+                    self.saltar_cinematica()
 
     def update(self, tiempo_pasado):
+        # forzar detección de ESCAPE incluso si un diálogo bloquea los eventos
+        teclas = pygame.key.get_pressed()
+        if teclas[pygame.K_ESCAPE] and not self.saltada:
+            self.saltada = True
+            self.saltar_cinematica()
+            return
+
         if self.estado == "FADE_IN":
             self.fade_alpha -= (255 / 1000) * tiempo_pasado # fade de 1 segundo
             if self.fade_alpha <= 0:
