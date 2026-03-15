@@ -74,10 +74,10 @@ class EscenaCinematicaFinal(Escena):
         
         # textos de cinemática final
         self.textos_negro = [
-            "Michel consiguió atrapar a Carlitos justo antes de poder escapar",
+            "Michel consiguió atrapar a Carlitos justo antes de poder escapar.",
             "Michel no quería que Carlitos volviera a escaparse...",
             "... así que se lo entregó a la facultad y decidieron ponerlo a hacer el peor de los trabajos...",
-            "Le pusieron a revisar las guías docentes de la FIC hasta el final de sus días"
+            "Le pusieron a revisar las guías docentes de la FIC hasta el final de sus días."
         ]
         self.indice_texto_negro = 0
 
@@ -195,13 +195,7 @@ class EscenaCinematicaFinal(Escena):
                 self.dialogo_mostrado = True
                 if self.caracteres_mostrados < len(self.textos_negro[0]):
                     self.caracteres_mostrados += self.velocidad_escritura * tiempo_pasado
-            
-            if self.tiempo_fase >= 4000:
-                self.fase = "texto_negro_2"
-                self.tiempo_fase = 0
-                self.dialogo_mostrado = False
-                self.caracteres_mostrados = 0  # reinicia para q pinte bien la frase
-        
+
         elif self.fase == "texto_negro_2":
             self.audio_m_reproducido = False # reseteando para volver a usar
 
@@ -211,13 +205,7 @@ class EscenaCinematicaFinal(Escena):
                 self.dialogo_mostrado = True
                 if self.caracteres_mostrados < len(self.textos_negro[1]):
                     self.caracteres_mostrados += self.velocidad_escritura * tiempo_pasado
-            
-            if self.tiempo_fase >= 4000:
-                self.fase = "texto_negro_3"
-                self.tiempo_fase = 0
-                self.dialogo_mostrado = False
-                self.caracteres_mostrados = 0  # reinicia para q pinte bien la frase
-        
+
         elif self.fase == "texto_negro_3":
             # pintamos las letras poco a poco
             if self.tiempo_fase < 300:
@@ -227,12 +215,6 @@ class EscenaCinematicaFinal(Escena):
                 if self.caracteres_mostrados < len(self.textos_negro[2]):
                     self.caracteres_mostrados += self.velocidad_escritura * tiempo_pasado
 
-            if self.tiempo_fase >= 4000:
-                self.fase = "texto_negro_4"
-                self.tiempo_fase = 0
-                self.dialogo_mostrado = False
-                self.caracteres_mostrados = 0
-        
         elif self.fase == "texto_negro_4":
             # pintamos las letras poco a poco
             if self.tiempo_fase < 300:
